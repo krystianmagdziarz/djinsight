@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.8] - 2025-12-04
+
+### Changed
+- **🔧 Database Schema Update**
+  - Increased `session_key` field length from 40 to 255 characters in `PageViewLog` model
+  - Supports longer session keys for various session backends
+
 ## [0.1.7] - 2025-01-27
 
 ### Added
