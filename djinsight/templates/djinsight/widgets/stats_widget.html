@@ -1,0 +1,97 @@
+<div class="djinsight-stats-widget" data-object-id="{{ obj.pk }}" data-metric="{{ metric }}" data-period="{{ period }}">
+    <div class="djinsight-stats-header">
+        <h3>{{ obj }} - Analytics</h3>
+    </div>
+
+    <div class="djinsight-stats-body">
+        {% if data.total_views is not None %}
+        <div class="djinsight-stat-card">
+            <div class="djinsight-stat-label">Total Views</div>
+            <div class="djinsight-stat-value">{{ data.total_views|default:0 }}</div>
+        </div>
+        {% endif %}
+
+        {% if data.unique_views is not None %}
+        <div class="djinsight-stat-card">
+            <div class="djinsight-stat-label">Unique Views</div>
+            <div class="djinsight-stat-value">{{ data.unique_views|default:0 }}</div>
+        </div>
+        {% endif %}
+
+        {% if data.views is not None %}
+        <div class="djinsight-stat-card">
+            <div class="djinsight-stat-label">Views ({{ period }})</div>
+            <div class="djinsight-stat-value">
+                {% if data.views|length > 0 %}
+                    {{ data.views|length }}
+                {% else %}
+                    {{ data.views|default:0 }}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if data.last_viewed_at %}
+        <div class="djinsight-stat-card">
+            <div class="djinsight-stat-label">Last Viewed</div>
+            <div class="djinsight-stat-value">{{ data.last_viewed_at|date:"Y-m-d H:i" }}</div>
+        </div>
+        {% endif %}
+
+        {% if data.first_viewed_at %}
+        <div class="djinsight-stat-card">
+            <div class="djinsight-stat-label">First Viewed</div>
+            <div class="djinsight-stat-value">{{ data.first_viewed_at|date:"Y-m-d H:i" }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.djinsight-stats-widget {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    background: #fff;
+}
+
+.djinsight-stats-header h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.djinsight-stats-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.djinsight-stat-card {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.djinsight-stat-label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.djinsight-stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+@media (max-width: 768px) {
+    .djinsight-stats-body {
+        grid-template-columns: 1fr;
+    }
+}
+</style>

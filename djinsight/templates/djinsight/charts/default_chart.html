@@ -1,0 +1,78 @@
+<div class="djinsight-chart-container">
+    <canvas id="djinsight-chart-{{ chart_id }}" width="400" height="200"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const chartId = 'djinsight-chart-{{ chart_id|default:"default" }}';
+    const ctx = document.getElementById(chartId);
+
+    if (!ctx) return;
+
+    const chartData = {{ chart_data|safe }};
+    const chartType = '{{ chart_type|default:"line" }}';
+    const chartColor = '{{ chart_color|default:"#007bff" }}';
+
+    const labels = chartData.map(item => item.label || item.date);
+    const data = chartData.map(item => item.count || 0);
+
+    const config = {
+        type: chartType,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Views',
+                data: data,
+                backgroundColor: chartType === 'bar' ? chartColor : chartColor + '20',
+                borderColor: chartColor,
+                borderWidth: 2,
+                fill: chartType === 'line',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+})();
+</script>
+
+<style>
+.djinsight-chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .djinsight-chart-container {
+        padding: 10px;
+    }
+}
+</style>

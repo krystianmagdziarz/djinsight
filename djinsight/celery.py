@@ -11,16 +11,14 @@ from celery import Celery
 from celery.schedules import crontab
 from django.conf import settings
 
-# Set the default Django settings module for the 'celery' program.
+from djinsight.conf import djinsight_settings
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_project.settings")
 
 app = Celery("djinsight")
 
-# Using a string here means the worker doesn't have to serialize
-# the configuration object to child processes.
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
-# Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
 
@@ -72,31 +70,31 @@ app.conf.beat_schedule = {
         "task": "djinsight.tasks.process_page_views_task",
         "schedule": get_schedule_from_env(
             "DJINSIGHT_PROCESS_SCHEDULE",
-            10,  # Default: every 10 seconds
+            10,
         ),
         "kwargs": {
-            "batch_size": getattr(settings, "DJINSIGHT_BATCH_SIZE", 1000),
-            "max_records": getattr(settings, "DJINSIGHT_MAX_RECORDS", 10000),
+            "batch_size": djinsight_settings.PROCESS_BATCH_SIZE,
+            "max_records": djinsight_settings.PROCESS_MAX_RECORDS,
         },
     },
     "generate-daily-summaries": {
         "task": "djinsight.tasks.generate_daily_summaries_task",
         "schedule": get_schedule_from_env(
             "DJINSIGHT_SUMMARIES_SCHEDULE",
-            crontab(minute="*/10"),  # Default: every 10 minutes
+            crontab(minute="*/10"),
         ),
         "kwargs": {
-            "days_back": getattr(settings, "DJINSIGHT_SUMMARY_DAYS_BACK", 7),
+            "days_back": djinsight_settings.SUMMARY_DAYS_BACK,
         },
     },
     "cleanup-old-data": {
         "task": "djinsight.tasks.cleanup_old_data_task",
         "schedule": get_schedule_from_env(
             "DJINSIGHT_CLEANUP_SCHEDULE",
-            crontab(hour=1, minute=0),  # Default: daily at 1:00 AM
+            crontab(hour=1, minute=0),
         ),
         "kwargs": {
-            "days_to_keep": getattr(settings, "DJINSIGHT_DAYS_TO_KEEP", 90),
+            "days_to_keep": djinsight_settings.CLEANUP_DAYS_TO_KEEP,
         },
     },
 }

@@ -1,0 +1,78 @@
+{% load djinsight_tags %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ post.title }}</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .content { line-height: 1.6; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        .stats-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 30px; }
+        .stats-section h2 { margin-top: 0; color: #495057; }
+        .stat-item { margin: 10px 0; padding: 10px; background: white; border-radius: 4px; }
+        .stat-label { font-weight: bold; color: #333; }
+        hr { border: none; border-top: 1px solid #eee; margin: 30px 0; }
+        a { color: #007bff; }
+    </style>
+</head>
+<body>
+    <p><a href="{% url 'blog:post_list' %}">&larr; Back to list</a></p>
+
+    <h1>{{ post.title }}</h1>
+    <p class="meta">Published: {{ post.created_at|date:"Y-m-d H:i" }}</p>
+
+    <div class="content">
+        {{ post.content|linebreaks }}
+    </div>
+
+    <div class="stats-section">
+        <h2>DjInsight Template Tags Demo</h2>
+
+        <div class="stat-item">
+            <span class="stat-label">1. Track tag (injects tracking script):</span><br>
+            {% track obj=post %}
+            <code>{% verbatim %}{% track obj=post %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">2. Stats - Total views (text):</span><br>
+            {% stats obj=post %} views<br>
+            <code>{% verbatim %}{% stats obj=post %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">3. Stats - Today views:</span><br>
+            {% stats obj=post period="today" %} views today<br>
+            <code>{% verbatim %}{% stats obj=post period="today" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">4. Stats - Week views:</span><br>
+            {% stats obj=post period="week" %} views this week<br>
+            <code>{% verbatim %}{% stats obj=post period="week" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">5. Stats - Chart output:</span><br>
+            {% stats obj=post period="week" output="chart" %}<br>
+            <code>{% verbatim %}{% stats obj=post period="week" output="chart" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">6. Stats - Bar chart with custom color:</span><br>
+            {% stats obj=post period="week" output="chart" chart_type="bar" chart_color="#28a745" %}<br>
+            <code>{% verbatim %}{% stats obj=post period="week" output="chart" chart_type="bar" chart_color="#28a745" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">7. Format count filter:</span><br>
+            Example: {{ 12345|format_count }}<br>
+            <code>{% verbatim %}{{ 12345|format_count }}{% endverbatim %}</code>
+        </div>
+    </div>
+
+    <hr>
+    <p><a href="/admin/">Admin Panel</a></p>
+</body>
+</html>

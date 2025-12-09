@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "djinsight"
-version = "0.1.8"
-description = "A Django/Wagtail package for tracking page view statistics with Redis and async processing"
+version = "0.3.0"
+description = "Modern, extensible analytics for Django with async support, MCP integration, and universal stats API"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [

@@ -2,20 +2,21 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-import environ
 from django.apps import apps
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 from redis.exceptions import ConnectionError, TimeoutError
 
-from .models import PageViewLog, PageViewSummary
-from .views import REDIS_KEY_PREFIX, redis_client
+from djinsight.conf import djinsight_settings
+from djinsight.models import PageViewEvent, PageViewStatistics, PageViewSummary
+from djinsight.providers.redis import RedisProvider
 
 logger = logging.getLogger(__name__)
 
-# Initialize environment variables
-env = environ.Env()
+redis_provider = RedisProvider()
+redis_client = redis_provider.client
+REDIS_KEY_PREFIX = djinsight_settings.REDIS_KEY_PREFIX
 
 # Try to import Celery - if not available, tasks will be regular functions
 try:
@@ -34,35 +35,27 @@ except ImportError:
     bind=True,
     max_retries=3,
     default_retry_delay=60,
-    task_time_limit=env.int(
-        "DJINSIGHT_PROCESS_TASK_TIME_LIMIT", 1800
-    ),  # 30 minutes hard limit
-    task_soft_time_limit=env.int(
-        "DJINSIGHT_PROCESS_TASK_SOFT_TIME_LIMIT", 1500
-    ),  # 25 minutes soft limit
+    task_time_limit=djinsight_settings.PROCESS_TASK_TIME_LIMIT,
+    task_soft_time_limit=djinsight_settings.PROCESS_TASK_SOFT_TIME_LIMIT,
 )
 def process_page_views_task(
     self,
-    batch_size=env.int("DJINSIGHT_BATCH_SIZE", 1000),
-    max_records=env.int("DJINSIGHT_MAX_RECORDS", 10000),
+    batch_size=None,
+    max_records=None,
 ):
     """
     Celery task to process page views from Redis and store them in the database.
 
     Args:
         batch_size (int): Number of records to process in a single transaction
-                         (uses DJINSIGHT_BATCH_SIZE env var, defaults to 1000)
         max_records (int): Maximum number of records to process in a single run
-                          (uses DJINSIGHT_MAX_RECORDS env var, defaults to 10000)
-
-    Environment Variables:
-        DJINSIGHT_PROCESS_TASK_TIME_LIMIT (int): Hard timeout in seconds (default: 1800 = 30 min)
-        DJINSIGHT_PROCESS_TASK_SOFT_TIME_LIMIT (int): Soft timeout in seconds (default: 1500 = 25 min)
 
     Returns:
         int: Number of records processed
     """
     try:
+        batch_size = batch_size or djinsight_settings.PROCESS_BATCH_SIZE
+        max_records = max_records or djinsight_settings.PROCESS_MAX_RECORDS
         return process_page_views(batch_size, max_records)
     except Exception as exc:
         logger.error(f"Error processing page views: {exc}")
@@ -76,31 +69,23 @@ def process_page_views_task(
     bind=True,
     max_retries=3,
     default_retry_delay=60,
-    task_time_limit=env.int(
-        "DJINSIGHT_SUMMARY_TASK_TIME_LIMIT", 900
-    ),  # 15 minutes hard limit
-    task_soft_time_limit=env.int(
-        "DJINSIGHT_SUMMARY_TASK_SOFT_TIME_LIMIT", 720
-    ),  # 12 minutes soft limit
+    task_time_limit=djinsight_settings.SUMMARY_TASK_TIME_LIMIT,
+    task_soft_time_limit=djinsight_settings.SUMMARY_TASK_SOFT_TIME_LIMIT,
 )
 def generate_daily_summaries_task(
-    self, days_back=env.int("DJINSIGHT_SUMMARY_DAYS_BACK", 1)
+    self, days_back=None
 ):
     """
     Celery task to generate daily page view summaries.
 
     Args:
         days_back (int): Number of days back to process
-                        (uses DJINSIGHT_SUMMARY_DAYS_BACK env var, defaults to 1)
-
-    Environment Variables:
-        DJINSIGHT_SUMMARY_TASK_TIME_LIMIT (int): Hard timeout in seconds (default: 900 = 15 min)
-        DJINSIGHT_SUMMARY_TASK_SOFT_TIME_LIMIT (int): Soft timeout in seconds (default: 720 = 12 min)
 
     Returns:
         int: Number of summaries generated
     """
     try:
+        days_back = days_back or djinsight_settings.SUMMARY_DAYS_BACK
         return generate_daily_summaries(days_back)
     except Exception as exc:
         logger.error(f"Error generating daily summaries: {exc}")
@@ -114,31 +99,23 @@ def generate_daily_summaries_task(
     bind=True,
     max_retries=3,
     default_retry_delay=60,
-    task_time_limit=env.int(
-        "DJINSIGHT_CLEANUP_TASK_TIME_LIMIT", 3600
-    ),  # 60 minutes hard limit
-    task_soft_time_limit=env.int(
-        "DJINSIGHT_CLEANUP_TASK_SOFT_TIME_LIMIT", 3300
-    ),  # 55 minutes soft limit
+    task_time_limit=djinsight_settings.CLEANUP_TASK_TIME_LIMIT,
+    task_soft_time_limit=djinsight_settings.CLEANUP_TASK_SOFT_TIME_LIMIT,
 )
 def cleanup_old_data_task(
-    self, days_to_keep=env.int("DJINSIGHT_CLEANUP_DAYS_TO_KEEP", 90)
+    self, days_to_keep=None
 ):
     """
     Celery task to cleanup old page view logs.
 
     Args:
         days_to_keep (int): Number of days of logs to keep
-                           (uses DJINSIGHT_CLEANUP_DAYS_TO_KEEP env var, defaults to 90)
-
-    Environment Variables:
-        DJINSIGHT_CLEANUP_TASK_TIME_LIMIT (int): Hard timeout in seconds (default: 3600 = 60 min)
-        DJINSIGHT_CLEANUP_TASK_SOFT_TIME_LIMIT (int): Soft timeout in seconds (default: 3300 = 55 min)
 
     Returns:
         int: Number of records deleted
     """
     try:
+        days_to_keep = days_to_keep or djinsight_settings.CLEANUP_DAYS_TO_KEEP
         return cleanup_old_data(days_to_keep)
     except Exception as exc:
         logger.error(f"Error cleaning up old data: {exc}")
@@ -149,21 +126,21 @@ def cleanup_old_data_task(
 
 
 def process_page_views(
-    batch_size=env.int("DJINSIGHT_BATCH_SIZE", 1000),
-    max_records=env.int("DJINSIGHT_MAX_RECORDS", 10000),
+    batch_size=None,
+    max_records=None,
 ):
     """
     Process page views from Redis and store them in the database.
 
     Args:
         batch_size (int): Number of records to process in a single transaction
-                         (uses DJINSIGHT_BATCH_SIZE env var, defaults to 1000)
         max_records (int): Maximum number of records to process in a single run
-                          (uses DJINSIGHT_MAX_RECORDS env var, defaults to 10000)
 
     Returns:
         int: Number of records processed
     """
+    batch_size = batch_size or djinsight_settings.PROCESS_BATCH_SIZE
+    max_records = max_records or djinsight_settings.PROCESS_MAX_RECORDS
     if not redis_client:
         logger.error("Redis client not available")
         return 0
@@ -234,17 +211,13 @@ def process_batch(keys):
     if not redis_client:
         return 0
 
-    # Get all values in a single call using pipeline
     pipe = redis_client.pipeline()
     for key in keys:
         pipe.get(key)
     values = pipe.execute()
 
-    # Create PageViewLog objects and collect statistics
-    page_view_logs = []
-    page_view_counters = {}  # {(page_id, content_type): (total, unique)}
-    unique_sessions = set()  # Track unique sessions per page
-
+    page_view_events = []
+    page_view_counters = {}
     processed_count = 0
 
     for key, value in zip(keys, values):
@@ -283,23 +256,24 @@ def process_batch(keys):
             else:
                 timestamp = timezone.now()
 
-            # Create PageViewLog
-            page_view_logs.append(
-                PageViewLog(
-                    page_id=page_id,
-                    content_type=content_type,
+            app_label, model = content_type.split(".")
+            ct = ContentType.objects.get_by_natural_key(app_label, model)
+
+            page_view_events.append(
+                PageViewEvent(
+                    content_type=ct,
+                    object_id=page_id,
                     url=url,
-                    session_key=session_key,
+                    session_key=session_key[:255] if session_key else "",
                     ip_address=ip_address,
-                    user_agent=user_agent[:1000] if user_agent else "",  # Limit length
-                    referrer=referrer[:500] if referrer else "",  # Limit length
+                    user_agent=user_agent[:1000] if user_agent else "",
+                    referrer=referrer[:500] if referrer else "",
                     timestamp=timestamp,
                     is_unique=is_unique,
                 )
             )
 
-            # Update counters
-            counter_key = (page_id, content_type)
+            counter_key = (ct.id, page_id)
             if counter_key not in page_view_counters:
                 page_view_counters[counter_key] = (1, 1 if is_unique else 0)
             else:
@@ -318,36 +292,27 @@ def process_batch(keys):
             logger.error(f"Unexpected error processing page view {key}: {e}")
             continue
 
-    # Save to database in a transaction
-    if page_view_logs or page_view_counters:
+    if page_view_events or page_view_counters:
         with transaction.atomic():
-            # Save PageViewLog objects
-            if page_view_logs:
-                PageViewLog.objects.bulk_create(page_view_logs, batch_size=500)
+            if page_view_events:
+                PageViewEvent.objects.bulk_create(page_view_events, batch_size=500)
 
-            # Update page statistics
-            for (page_id, content_type), (total, unique) in page_view_counters.items():
+            for (content_type_id, object_id), (total, unique) in page_view_counters.items():
                 try:
-                    # Get the model class from the content type
-                    app_label, model = content_type.split(".")
-                    model_class = apps.get_model(app_label, model)
-
-                    # Update the page statistics using F expressions for thread safety
-                    updated = model_class.objects.filter(id=page_id).update(
-                        total_views=F("total_views") + total,
-                        unique_views=F("unique_views") + unique,
-                        last_viewed_at=timezone.now(),
+                    stats, created = PageViewStatistics.objects.get_or_create(
+                        content_type_id=content_type_id,
+                        object_id=object_id,
                     )
-
-                    # If page wasn't updated (doesn't exist), log warning
-                    if updated == 0:
-                        logger.warning(
-                            f"Page {content_type} with id {page_id} not found for statistics update"
-                        )
+                    stats.total_views += total
+                    stats.unique_views += unique
+                    stats.last_viewed_at = timezone.now()
+                    if not stats.first_viewed_at:
+                        stats.first_viewed_at = timezone.now()
+                    stats.save(update_fields=['total_views', 'unique_views', 'last_viewed_at', 'first_viewed_at'])
 
                 except Exception as e:
                     logger.error(
-                        f"Error updating page statistics for {content_type} {page_id}: {e}"
+                        f"Error updating page statistics for content_type {content_type_id} object {object_id}: {e}"
                     )
 
     # Delete processed keys from Redis
@@ -360,17 +325,17 @@ def process_batch(keys):
     return processed_count
 
 
-def generate_daily_summaries(days_back=env.int("DJINSIGHT_SUMMARY_DAYS_BACK", 7)):
+def generate_daily_summaries(days_back=None):
     """
     Generate daily page view summaries from detailed logs.
 
     Args:
         days_back (int): Number of days back to process
-                        (uses DJINSIGHT_SUMMARY_DAYS_BACK env var, defaults to 7)
 
     Returns:
         int: Number of summaries generated
     """
+    days_back = days_back or djinsight_settings.SUMMARY_DAYS_BACK
     logger.info(f"Generating daily summaries for the last {days_back} days")
 
     end_date = timezone.now().date()
@@ -378,32 +343,33 @@ def generate_daily_summaries(days_back=env.int("DJINSIGHT_SUMMARY_DAYS_BACK", 7)
 
     summaries_created = 0
 
-    # Get all page IDs that have views in the time period
     page_views = (
-        PageViewLog.objects.filter(
+        PageViewEvent.objects.filter(
             timestamp__date__gte=start_date, timestamp__date__lte=end_date
         )
-        .values("page_id", "content_type", "timestamp__date")
+        .values("content_type", "object_id", "timestamp__date")
         .distinct()
     )
 
     for view_data in page_views:
-        page_id = view_data["page_id"]
         content_type = view_data["content_type"]
+        object_id = view_data["object_id"]
         date = view_data["timestamp__date"]
 
-        # Calculate statistics for this page on this date
-        date_views = PageViewLog.objects.filter(page_id=page_id, timestamp__date=date)
+        date_views = PageViewEvent.objects.filter(
+            content_type=content_type,
+            object_id=object_id,
+            timestamp__date=date
+        )
 
         total_views = date_views.count()
         unique_views = date_views.values("session_key").distinct().count()
 
-        # Create or update summary
         summary, created = PageViewSummary.objects.update_or_create(
-            page_id=page_id,
+            content_type=content_type,
+            object_id=object_id,
             date=date,
             defaults={
-                "content_type": content_type,
                 "total_views": total_views,
                 "unique_views": unique_views,
             },
@@ -416,25 +382,24 @@ def generate_daily_summaries(days_back=env.int("DJINSIGHT_SUMMARY_DAYS_BACK", 7)
     return summaries_created
 
 
-def cleanup_old_data(days_to_keep=env.int("DJINSIGHT_CLEANUP_DAYS_TO_KEEP", 90)):
+def cleanup_old_data(days_to_keep=None):
     """
     Cleanup old page view logs older than specified days.
 
     Args:
         days_to_keep (int): Number of days of logs to keep
-                           (uses DJINSIGHT_CLEANUP_DAYS_TO_KEEP env var, defaults to 90)
 
     Returns:
         int: Number of records deleted
     """
+    days_to_keep = days_to_keep or djinsight_settings.CLEANUP_DAYS_TO_KEEP
     cutoff_date = timezone.now() - timedelta(days=days_to_keep)
 
     logger.info(f"Cleaning up page view logs older than {cutoff_date}")
 
-    # Delete old logs
-    deleted_count, _ = PageViewLog.objects.filter(timestamp__lt=cutoff_date).delete()
+    deleted_count, _ = PageViewEvent.objects.filter(timestamp__lt=cutoff_date).delete()
 
-    logger.info(f"Deleted {deleted_count} old page view logs")
+    logger.info(f"Deleted {deleted_count} old page view events")
 
     # Also cleanup old Redis session keys (this is optional)
     if redis_client:
@@ -463,11 +428,10 @@ def cleanup_old_data(days_to_keep=env.int("DJINSIGHT_CLEANUP_DAYS_TO_KEEP", 90))
     return deleted_count
 
 
-# Management command functions (for manual execution)
 def run_process_page_views(verbosity=1, **options):
     """Function that can be called from management command"""
-    batch_size = options.get("batch_size", env.int("DJINSIGHT_BATCH_SIZE", 1000))
-    max_records = options.get("max_records", env.int("DJINSIGHT_MAX_RECORDS", 10000))
+    batch_size = options.get("batch_size") or djinsight_settings.PROCESS_BATCH_SIZE
+    max_records = options.get("max_records") or djinsight_settings.PROCESS_MAX_RECORDS
 
     if verbosity >= 1:
         print(
@@ -484,7 +448,7 @@ def run_process_page_views(verbosity=1, **options):
 
 def run_generate_summaries(verbosity=1, **options):
     """Function that can be called from management command"""
-    days_back = options.get("days_back", env.int("DJINSIGHT_SUMMARY_DAYS_BACK", 7))
+    days_back = options.get("days_back") or djinsight_settings.SUMMARY_DAYS_BACK
 
     if verbosity >= 1:
         print(f"Generating daily summaries for the last {days_back} days")
@@ -499,9 +463,7 @@ def run_generate_summaries(verbosity=1, **options):
 
 def run_cleanup_old_data(verbosity=1, **options):
     """Function that can be called from management command"""
-    days_to_keep = options.get(
-        "days_to_keep", env.int("DJINSIGHT_CLEANUP_DAYS_TO_KEEP", 90)
-    )
+    days_to_keep = options.get("days_to_keep") or djinsight_settings.CLEANUP_DAYS_TO_KEEP
 
     if verbosity >= 1:
         print(f"Cleaning up data older than {days_to_keep} days")

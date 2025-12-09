@@ -1,0 +1,43 @@
+<span class="djinsight-badge djinsight-badge-{{ metric }}" data-metric="{{ metric }}" data-period="{{ period }}">
+    {% if data.total_views is not None %}
+        {{ data.total_views|default:0 }} views
+    {% elif data.unique_views is not None %}
+        {{ data.unique_views|default:0 }} unique
+    {% elif data.views is not None %}
+        {% if data.views|length > 0 %}
+            {{ data.views|length }}
+        {% else %}
+            {{ data.views|default:0 }}
+        {% endif %}
+    {% else %}
+        0
+    {% endif %}
+</span>
+
+<style>
+.djinsight-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 12px;
+    background-color: #007bff;
+    color: #fff;
+}
+
+.djinsight-badge-views {
+    background-color: #007bff;
+}
+
+.djinsight-badge-unique_views {
+    background-color: #28a745;
+}
+
+.djinsight-badge-all {
+    background-color: #6f42c1;
+}
+</style>

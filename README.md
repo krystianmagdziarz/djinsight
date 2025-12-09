@@ -1,222 +1,241 @@
-# 📊 djinsight
+# djinsight
 
-A high-performance Django/Wagtail package for real-time page view analytics with Redis and Celery.
+**MCP-first analytics for Django** - Expose your Django app statistics to Claude and other AI agents through Model Context Protocol.
 
-[![Django](https://img.shields.io/badge/Django-3.2%20%7C%204.0%20%7C%204.1%20%7C%204.2%20%7C%205.0%20%7C%205.1%20%7C%205.2-092E20?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![Wagtail](https://img.shields.io/badge/Wagtail-3.0%20%7C%204.0%20%7C%205.0%20%7C%206.0%20%7C%207.0-43B1B0?style=flat&logo=wagtail&logoColor=white)](https://wagtail.org/)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![PyPI](https://img.shields.io/pypi/v/djinsight?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/djinsight/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Published on Django Packages](https://img.shields.io/badge/Published%20on-Django%20Packages-0c3c26)](https://djangopackages.org/packages/p/djinsight/)
+[![PyPI version](https://badge.fury.io/py/djinsight.svg)](https://badge.fury.io/py/djinsight)
+[![Python](https://img.shields.io/pypi/pyversions/djinsight.svg)](https://pypi.org/project/djinsight/)
+[![Django](https://img.shields.io/badge/Django-3.2%20%7C%204.x%20%7C%205.x-green.svg)](https://www.djangoproject.com/)
 
+## Why djinsight?
 
-## 🚀 Live Demo Screenshots
+**Built for AI-first workflows.** djinsight is the first Django analytics package designed with MCP (Model Context Protocol) as a primary interface. Claude, other AI agents, or automation tools can query your app's analytics directly.
 
-See djinsight in action with our comprehensive example application:
-
-### Articles List
-![djinsight Dashboard](docs/images/1.png)
-*Main articles list with counters*
-
-### Article Analytics 
-![Article Detail View](docs/images/2.png)
-*Individual article page with live view counters and modular statistics components*
-
-### Analytics Demo
-![Analytics Components](docs/images/3.png)
-*Demonstration of djinsight's modular template tags and live statistics counter*
-
-### E-commerce Integration
-![Product Analytics](docs/images/4.png)
-*Product pages with analytics tracking showing cross-content type support*
-
-### Popular Content Overview
-![Popular Content](docs/images/5.png)
-*Dashboard showing most popular articles, products, and courses with real-time view counts*
-
----
-
-## 🔧 How It Works
-
-djinsight implements a **two-tier architecture** for maximum performance and reliability:
-
-### 🚀 Tier 1: Real-time Data Collection (Redis)
-- **Instant Tracking**: When a user visits a page, JavaScript sends an async request to djinsight's API
-- **Redis Storage**: View data is immediately stored in Redis with sub-millisecond write times
-- **Session Management**: Unique visitors are tracked using Django's session framework
-- **Smart Key Structure**: Uses content-type specific Redis keys (`djinsight:counter:blog.article:123`)
-- **No Database Blocking**: Zero impact on page load times - all writes go to Redis first
-
-### 🔄 Tier 2: Background Processing (Celery)
-- **Batch Processing**: Celery tasks periodically move data from Redis to PostgreSQL/MySQL
-- **Data Aggregation**: Daily summaries are generated for efficient historical queries  
-- **Automatic Cleanup**: Old detailed logs are cleaned up while preserving summaries
-- **Fault Tolerance**: If database is down, data accumulates safely in Redis
-
-### 🛡️ Reliability Features
-- **Backward Compatibility**: Supports both new and legacy Redis key formats
-- **Graceful Degradation**: Works even if Celery workers are temporarily down
-- **Error Recovery**: Failed batch processing can be retried without data loss
-- **Conflict Resolution**: Content-type separation prevents ID conflicts between models
-
-## ✨ Features
-
-- **🌐 Universal Model Support**: Works with any Django model via mixin inheritance
-- **🧩 Modular Template Tags**: Individual components for flexible UI design
-- **⚡ Real-time Tracking**: JavaScript-based view counting with async Redis storage
-- **🚄 High Performance**: Redis pipeline for fast data writes, Celery for background processing
-- **👥 Session-based Unique Visitors**: Accurate unique view counting using Django sessions
-- **🔒 Permission Control**: Configurable access restrictions for statistics
-- **🏷️ Template Tags**: Easy integration with simple template tags
-- **📈 Live Statistics**: Real-time stats display with auto-refresh
-- **🔄 Automatic Data Processing**: Background tasks for Redis → Database sync
-- **🧹 Data Cleanup**: Automatic cleanup of old tracking data
-- **🔧 Admin Interface**: Django admin integration for viewing statistics
-
-## 📋 Metrics & Functions
-
-### 📊 Core Metrics Collected
-- **📈 Total Views**: Complete view count across all time
-- **👥 Unique Views**: Session-based unique visitor tracking
-- **📅 Time-based Views**: Today, this week, this month counters
-- **⏰ Timestamps**: First view and last view tracking
-- **🔗 URL Tracking**: Full request path and referrer information
-- **📱 User Agent**: Browser and device information
-- **🌍 IP Address**: Geographic tracking (privacy-compliant)
-
-### 🛠️ Key Functions
-- **⚡ Live Counters**: Real-time updating statistics with configurable refresh rates
-- **📊 Historical Analysis**: Daily/weekly/monthly trend analysis
-- **🔍 Content Performance**: Compare performance across different content types
-- **📈 Popular Content**: Identify trending and top-performing pages
-- **👥 Visitor Patterns**: Unique vs returning visitor analysis
-- **🕐 Time Series Data**: View patterns over time with granular control
-- **🔄 Data Export**: Export analytics data for external analysis
-- **📱 API Access**: REST API for custom integrations and dashboards
-
-### 🏷️ Template Components
-- **📊 `total_views_stat`**: Display total view counts
-- **👥 `unique_views_stat`**: Show unique visitor numbers  
-- **⏰ `last_viewed_stat`**: Last visit timestamp
-- **🎯 `first_viewed_stat`**: First view tracking
-- **📅 `views_today_stat`**: Today's view count
-- **📆 `views_week_stat`**: Weekly view statistics
-- **📊 `views_month_stat`**: Monthly performance
-- **🔄 `live_stats_counter`**: Auto-refreshing live counter
-
-## 🆚 djinsight vs Google Analytics
-
-### 🏆 **djinsight Advantages**
-
-| Feature | 📊 djinsight | 📈 Google Analytics |
-|---------|-------------|-------------------|
-| **🚀 Performance** | Sub-millisecond Redis writes | ~100-500ms external requests |
-| **🔒 Privacy** | Your servers, full control | Google's servers, limited control |
-| **📱 Real-time** | Instant live counters | 24-48h delay for reports |
-| **🎨 Customization** | Full template control | Limited widget customization |
-| **💾 Data Ownership** | Your database, permanent | Google's data, subject to changes |
-| **🛡️ GDPR Compliance** | Built-in privacy controls | Requires complex cookie consent |
-| **📊 Granular Control** | Per-model, per-object tracking | Page-level only |
-| **🔧 Integration** | Native Django/Wagtail | JavaScript embed only |
-| **💰 Cost** | Open source, free | Free tier limitations |
-
-### 📈 **Google Analytics Advantages**
-
-| Feature | 📈 Google Analytics | 📊 djinsight |
-|---------|-------------------|-------------|
-| **🌍 External Traffic Analysis** | Full referrer tracking | Basic referrer only |
-| **🎯 Advanced Segmentation** | Extensive user segments | Session-based only |
-| **📊 E-commerce Tracking** | Built-in funnel analysis | Manual implementation |
-| **🔍 Search Console Integration** | SEO data integration | No SEO features |
-| **📱 Mobile App Tracking** | Native mobile support | Web-only focus |
-| **🤖 Machine Learning** | AI-powered insights | Manual analysis |
-
-### 🤝 **Best Practice: Use Both**
-
-Many sites use **djinsight + Google Analytics** together:
-
-- **📊 djinsight**: Internal dashboards, real-time stats, GDPR-compliant tracking
-- **📈 Google Analytics**: Marketing analysis, SEO insights, external traffic sources
-- **🔄 Hybrid Approach**: djinsight for app performance, GA for marketing metrics
-
-## 📦 Quick Installation
+## Quick Start
 
 ```bash
 pip install djinsight
 ```
 
-Add to your Django settings and URLs:
+### Option 1: Synchronous (No Redis/Celery)
+
+**Direct database writes - simplest setup:**
 
 ```python
 # settings.py
-INSTALLED_APPS = [
-    # ... other apps
-    'djinsight',
-]
+INSTALLED_APPS = ['djinsight']
+MIDDLEWARE = ['djinsight.middleware.TrackingMiddleware']
 
-# urls.py  
-urlpatterns = [
-    # ... other URLs
-    path('djinsight/', include('djinsight.urls')),
-]
+DJINSIGHT = {
+    'ENABLE_TRACKING': True,
+    'USE_REDIS': False,  # Direct to database
+    'USE_CELERY': False,
+}
 ```
 
-Add analytics to your models:
+### Option 2: Async with Redis + Celery (Recommended)
+
+**High-performance buffered writes:**
 
 ```python
-from djinsight.models import PageViewStatisticsMixin
+# settings.py
+INSTALLED_APPS = ['djinsight']
+MIDDLEWARE = ['djinsight.middleware.TrackingMiddleware']
 
-class Article(models.Model, PageViewStatisticsMixin):
-    title = models.CharField(max_length=200)
-    # ... your fields
+DJINSIGHT = {
+    'ENABLE_TRACKING': True,
+    'USE_REDIS': True,   # Buffer in Redis
+    'USE_CELERY': True,  # Process with Celery
+    'REDIS_HOST': 'localhost',
+    'REDIS_PORT': 6379,
+}
 ```
 
-Add tracking to your templates:
+**Start Celery worker:**
+```bash
+celery -A your_project worker -l info
+celery -A your_project beat -l info
+```
 
-```html
+### Register Models
+
+```python
+# blog/apps.py
+from django.apps import AppConfig
+
+class BlogConfig(AppConfig):
+    name = 'blog'
+
+    def ready(self):
+        from djinsight.models import ContentTypeRegistry
+        from blog.models import Article
+        ContentTypeRegistry.register(Article)
+```
+
+### Use in Templates
+
+```django
 {% load djinsight_tags %}
-{% page_view_tracker obj=article %}
-<p>Views: {% total_views_stat obj=article %}</p>
+
+{% stats metric="views" period="week" output="chart" %}
+{% stats metric="unique_views" period="today" output="badge" %}
 ```
 
-## 📚 Documentation
+## Configuration Modes
 
-- **📖 [Complete Documentation](docs/README.md)** - Full documentation index
-- **📦 [Installation Guide](docs/installation.md)** - Step-by-step setup
-- **⚡ [Quick Start](docs/quick-start.md)** - Get running in 5 minutes
-- **🔒 [Permission Control](docs/permission-control.md)** - Access control and security
-- **🏷️ [Template Tags](docs/template-tags.md)** - Complete reference
-- **🎨 [Template Examples](docs/template-examples.md)** - Implementation examples
-- **🔧 [Configuration](docs/configuration.md)** - Advanced settings
-- **📊 [Analytics Usage](docs/analytics.md)** - Advanced features
-- **🚄 [Performance](docs/performance.md)** - Optimization tips
-- **🔑 [Redis Structure](docs/redis-structure.md)** - Understanding Redis keys
-- **⚙️ [Management Commands](docs/management-commands.md)** - CLI tools
+| Feature | Synchronous | Async (Redis+Celery) |
+|---------|-------------|---------------------|
+| **Setup** | ✅ Simple | ⚙️ Requires Redis+Celery |
+| **Dependencies** | None | Redis, Celery |
+| **Performance** | Good | Excellent |
+| **Request blocking** | ~5ms | <1ms |
+| **Batch processing** | ❌ No | ✅ Yes |
+| **Recommended for** | Small sites, dev | Production, high traffic |
 
-## 👨‍💻 Development
+**Switch modes anytime:**
+```python
+DJINSIGHT = {
+    'USE_REDIS': False,  # False = sync, True = async
+}
+```
 
-- **🤝 [Contributing Guide](docs/contributing.md)** - How to contribute
-- **📄 [License](docs/license.md)** - MIT License details
-- **🔄 [Changelog](CHANGELOG.md)** - Version history
-- **🖼️ [Demo Gallery](docs/demo-gallery.md)** - Visual showcase
+## MCP Integration
 
-## 📋 Requirements
+**Secure AI agent access to your Django analytics.**
 
-- 🐍 Python 3.8+
-- 🎯 Django 3.2+
-- 🚀 Redis 4.0+
-- 🔄 Celery 5.0+
-- 📦 django-redis
-- 🌍 django-environ (for environment variable configuration)
-- 🌐 Optional: Wagtail 3.0+ (for Wagtail integration)
+### 1. Generate API Key
 
-## 🔗 Links
+```bash
+python manage.py shell
+```
 
-- **📦 [PyPI Package](https://pypi.org/project/djinsight/)**
-- **🐙 [GitHub Repository](https://github.com/krystianmagdziarz/djinsight)**
-- **🐛 [Issue Tracker](https://github.com/krystianmagdziarz/djinsight/issues)**
-- **💬 [Discussions](https://github.com/krystianmagdziarz/djinsight/discussions)**
+```python
+from djinsight.models import MCPAPIKey
 
-## 📄 License
+# Create API key
+api_key = MCPAPIKey.create_key(
+    name="Claude Desktop",
+    description="API key for Claude desktop app"
+)
+print(f"API Key: {api_key.key}")
+# Save this key securely!
+```
 
-MIT License - see [LICENSE](LICENSE) file for details.
+Or create via Django Admin: `/admin/djinsight/mcpapikey/`
+
+### 2. Configure Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-django-blog": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "https://myblog.com/djinsight/mcp/",
+        "-H", "Authorization: Bearer YOUR_API_KEY_HERE",
+        "-H", "Content-Type: application/json",
+        "-d", "@-"
+      ]
+    }
+  }
+}
+```
+
+**Replace:**
+- `my-django-blog` - Your service name
+- `https://myblog.com` - Your Django app URL
+- `YOUR_API_KEY_HERE` - API key from step 1
+
+### 3. Available MCP Tools
+
+- `get_page_stats` - Get statistics for specific page
+- `get_top_pages` - List top performing content
+- `get_period_stats` - Get stats for time period (today/week/month/year)
+- `list_tracked_models` - Show all tracked content types
+
+### 4. Example Claude Interaction
+
+```
+You: "What are my top 5 blog articles this week?"
+
+Claude: [Uses get_top_pages tool]
+"Your top articles:
+1. 'Django Performance Tips' - 1,247 views (823 unique)
+2. 'Redis Caching Guide' - 891 views (654 unique)
+3. 'API Design Patterns' - 743 views (521 unique)
+4. 'Docker for Django' - 612 views (445 unique)
+5. 'Testing Best Practices' - 502 views (389 unique)"
+
+You: "Show me detailed stats for article #1"
+
+Claude: [Uses get_page_stats + get_period_stats]
+"Django Performance Tips (ID: 1):
+- Total views: 3,452
+- Unique visitors: 2,103
+- First viewed: 2024-11-15
+- Last viewed: 2 hours ago
+- This week: 1,247 views"
+```
+
+## Universal Stats Tag
+
+```django
+{% stats metric="views" period="week" output="chart" chart_type="line" %}
+```
+
+**Parameters:**
+- `metric`: `views`, `unique_views`
+- `period`: `today`, `week`, `month`, `year`, `last_year`, `custom`, `total`
+- `output`: `text`, `chart`, `json`, `widget`, `badge`
+- `chart_type`: `line`, `bar`
+
+## Extensibility
+
+Everything is swappable via settings:
+
+```python
+DJINSIGHT = {
+    'WIDGET_RENDERER': 'myapp.renderers.CustomRenderer',
+    'CHART_RENDERER': 'myapp.renderers.CustomChartRenderer',
+    'PROVIDER_CLASS': 'myapp.providers.PostgreSQLProvider',
+    'MIDDLEWARE_CLASS': 'myapp.middleware.CustomTracking',
+}
+```
+
+**Custom renderer:**
+
+```python
+from djinsight.renderers import BaseRenderer
+
+class CustomRenderer(BaseRenderer):
+    def render(self):
+        data = self.get_data()
+        return f"<div>Views: {data.get('total_views', 0)}</div>"
+```
+
+**Custom provider (replace Redis):**
+
+```python
+from djinsight.providers.base import BaseProvider
+
+class PostgreSQLProvider(BaseProvider):
+    async def record_view(self, event_data):
+        # Direct PostgreSQL writes instead of Redis buffering
+        pass
+```
+
+## Upgrading
+
+See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for v0.1.x → v0.2.0 migration steps.
+
+## License
+
+MIT
+
+## Links
+
+- [Documentation](https://github.com/krystianmagdziarz/djinsight)
+- [Issues](https://github.com/krystianmagdziarz/djinsight/issues)
+- [CHANGELOG](CHANGELOG.md)

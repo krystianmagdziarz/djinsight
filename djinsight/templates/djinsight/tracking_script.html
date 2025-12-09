@@ -24,12 +24,16 @@
             return response.json();
         })
         .then(function(data) {
-            if (data.status === 'success') {
+            if (data.success) {
                 {% if debug %}
                 console.log('[djinsight] Object view recorded successfully:', data);
                 {% endif %}
+            } else if (data.status === 'ignored') {
+                {% if debug %}
+                console.log('[djinsight] View ignored:', data.message);
+                {% endif %}
             } else {
-                console.error('{% if debug %}[djinsight] {% endif %}Error recording object view:', data.message);
+                console.error('{% if debug %}[djinsight] {% endif %}Error recording object view:', data.error || data.message);
             }
         })
         .catch(function(error) {

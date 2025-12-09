@@ -2,6 +2,287 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-12-09
+
+### Added
+
+- **🔄 Async/Sync Provider Support**
+  - `AsyncDatabaseProvider` - async wrapper for database operations
+  - `ProviderRegistry.get_async_provider()` - convenience method
+  - `USE_ASYNC` setting - toggle async/sync mode
+  - Full async support via `asgiref.sync_to_async`
+  - Compatible with Django async views
+
+- **🤖 Model Context Protocol (MCP) Integration**
+  - MCP server endpoint at `/djinsight/mcp/`
+  - API key authentication via `MCPAPIKey` model
+  - Four MCP tools:
+    - `get_page_stats` - get statistics for specific object
+    - `get_top_pages` - get top performing pages
+    - `get_period_stats` - get statistics for time period
+    - `list_tracked_models` - list all tracked content types
+  - AI agents can now query djinsight statistics
+
+- **✅ Comprehensive Test Suite**
+
+### Changed
+
+- **🏗️ Provider Architecture Refactored**
+  - `BaseProvider` - now sync by default
+  - `AsyncBaseProvider` - new async interface
+  - Providers can implement both sync and async variants
+  - Better separation of concerns
+
+- **📝 Generic Naming Convention**
+  - Changed `page_id` to `object_id` throughout codebase
+  - More generic and applicable to any Django model
+  - Consistent naming across all components
+
+### Fixed
+
+- Admin panel `view_ratio` display error with `format_html`
+- Database access warnings in `AppConfig.ready()`
+- Template tag object detection logic
+
+## [0.2.0] - 2025-12-09
+
+### 🚀 MAJOR REWRITE - Breaking Changes
+
+**This is a complete architectural redesign. See MIGRATION_GUIDE.md for upgrading from v0.1.x**
+
+### Added
+
+- **🏗️ New Architecture - No More Mixins**
+  - `ContentTypeRegistry` model for registering tracked models
+  - `PageViewStatistics` model - statistics in separate table (no mixin needed!)
+  - `PageViewEvent` model - replaces PageViewLog with ContentType support
+  - Models are now completely clean - no need to pollute with mixin fields
+  - Generic Foreign Key pattern for flexible object tracking
+
+- **🎯 Universal Template Tag System**
+  - ONE `{% stats %}` tag replaces 20+ redundant tags
+  - Parameters: `metric`, `period`, `output`, `chart_type`, `chart_color`
+  - Outputs: text, chart, json, widget, badge
+  - Metrics: views, unique_views, all
+  - Periods: today, week, month, year, last_year, custom, total
+  - Example: `{% stats metric="views" period="week" output="chart" chart_type="line" %}`
+
+- **🔌 Automatic Middleware Tracking**
+  - `TrackingMiddleware` - auto-injects tracking scripts
+  - No more manual `{% page_view_tracker %}` in every template
+  - Configurable via `DJINSIGHT['AUTO_INJECT_TRACKING']`
+  - Automatic object detection in view context
+
+- **🎨 Extensible Architecture**
+  - Custom renderers: `WIDGET_RENDERER`, `CHART_RENDERER`
+  - Custom providers: `PROVIDER_CLASS` (Redis, PostgreSQL, etc.)
+  - Custom middleware: `MIDDLEWARE_CLASS`
+  - Custom processors: `EVENT_PROCESSOR`, `SESSION_TRACKER`
+  - MCP-style provider registry system
+
+- **📦 Settings Consolidation**
+  - New `DJINSIGHT = {}` dict-based configuration
+  - Backward compatible with old `DJINSIGHT_*` format
+  - Cleaner, more organized settings structure
+  - Extensible class references for custom implementations
+
+- **🔧 Helper Functions & Utilities**
+  - `get_stats_for_object(obj)` - quick stats access
+  - `StatsQueryMixin` - reusable query methods
+  - `format_view_count()` - smart number formatting
+  - `check_stats_permission()` - permission checking
+
+### Changed
+
+- **💥 BREAKING: Removed PageViewStatisticsMixin**
+  - Statistics now stored in separate `PageViewStatistics` table
+  - No more mixin fields cluttering your models
+  - Use `ContentTypeRegistry.register(YourModel)` instead
+  - Migration tool provided: `python manage.py migrate_to_v2`
+
+- **💥 BREAKING: Template Tags Redesigned**
+  - Removed 20+ individual template tags
+  - Replaced with universal `{% stats %}` tag
+  - Old tags: `{% views_today_stat %}`, `{% unique_views_week_stat %}`, etc.
+  - New tag: `{% stats metric="views" period="today" %}`
+
+- **💥 BREAKING: Model Structure**
+  - `PageViewLog` → `PageViewEvent` with ContentType support
+  - `page_id` field → `content_type` + `object_id` (Generic FK)
+  - Better support for multiple model types
+  - Optimized database indexes
+
+### Enhanced
+
+- **⚡ Performance Improvements**
+  - Comprehensive database indexes on all key fields
+  - Optimized queries using `select_related` and `prefetch_related`
+  - Efficient ContentType-based lookups
+  - Better Redis key structure
+
+- **🧪 Code Quality**
+  - Pythonic code style (minimal comments, imports at top)
+  - Type hints throughout codebase
+  - Cleaner, more maintainable architecture
+  - Better separation of concerns
+
+### Removed
+
+- **🗑️ Deprecated Features**
+  - `PageViewStatisticsMixin` - use ContentTypeRegistry instead
+  - All individual stat template tags - use `{% stats %}` instead
+  - `page_view_tracker` tag - use middleware or `{% track %}`
+  - Wagtail-specific tags - universal tags work for all models
+
+### Migration
+
+- **📦 Data Migration Tool**
+  - `python manage.py migrate_to_v2` - automatic data migration
+  - Migrates all PageViewLog → PageViewEvent
+  - Migrates mixin statistics → PageViewStatistics
+  - Auto-registers tracked models in ContentTypeRegistry
+  - Supports `--dry-run` and `--batch-size` options
+
+### Documentation
+
+- **📖 Migration Guide**
+  - Complete MIGRATION_GUIDE.md with step-by-step instructions
+  - Code examples showing old vs new patterns
+  - Rollback procedures
+  - API changes documentation
+
+### Technical Details
+
+- **🏗️ Architecture**
+  - Provider pattern for pluggable backends
+  - Renderer pattern for flexible output
+  - Registry pattern for centralized configuration
+  - Middleware pattern for automatic tracking
+  - MCP-inspired design for modularity
+
+- **🗄️ Database Schema**
+  - 10+ optimized indexes for performance
+  - ContentType-based foreign keys
+  - Proper unique constraints
+  - Efficient querying patterns
+
+### Notes
+
+**IMPORTANT**: This is a major version with breaking changes. Existing v0.1.x installations must:
+1. Read MIGRATION_GUIDE.md
+2. Run `python manage.py migrate_to_v2`
+3. Update template tags
+4. Register models in ContentTypeRegistry
+5. Remove mixin from models (optional, can be done later)
+
+---
+
+## [0.1.9] - 2025-12-08
+
+### Added
+- **📅 Extended Time Period Analytics**
+  - New method `get_views_this_year()` - Get total views for the current year
+  - New method `get_views_last_year()` - Get total views for the previous year
+  - New method `get_views_for_period(start_date, end_date, unique=False)` - Get views for any custom date range with optional unique counting
+
+- **👥 Unique Visitor Analytics**
+  - New method `get_unique_views_today()` - Get unique visitors today
+  - New method `get_unique_views_this_week()` - Get unique visitors this week
+  - New method `get_unique_views_this_month()` - Get unique visitors this month
+  - New method `get_unique_views_this_year()` - Get unique visitors this year
+  - New method `get_unique_views_last_year()` - Get unique visitors last year
+
+- **🏷️ New Template Tags**
+  - `{% views_year_stat obj=article %}` - Display views this year statistic
+  - `{% views_last_year_stat obj=article %}` - Display views last year statistic
+  - `{% unique_views_today_stat obj=article %}` - Display unique views today
+  - `{% unique_views_week_stat obj=article %}` - Display unique views this week
+  - `{% unique_views_month_stat obj=article %}` - Display unique views this month
+  - `{% unique_views_year_stat obj=article %}` - Display unique views this year
+  - `{% unique_views_last_year_stat obj=article %}` - Display unique views last year
+  - `{% views_custom_period_stat obj=article start_date=start end_date=end unique=True %}` - Display views for custom date range
+
+- **📊 Interactive Charts & Visualization**
+  - Integrated Chart.js 4.4.1 for beautiful, interactive analytics charts
+  - Extended existing methods with `chart_data` parameter for unified API:
+    - `get_views_today(chart_data=True)` - Hourly views for last 24 hours
+    - `get_views_this_week(chart_data=True)` - Daily views for last 7 days
+    - `get_views_this_month(chart_data=True)` - Daily views for last 30 days
+    - `get_views_this_year(chart_data=True)` - Monthly views for last 12 months
+  - Support for both total and unique visitor charts
+  - Optimized chart data retrieval using PageViewSummary when available
+  - Chart styling customization with `chart_type` ('line' or 'bar') and `chart_color` parameters
+
+### Enhanced
+- **🎨 Collapsible Stats Cards**
+  - Redesigned `views_week_stat`, `views_month_stat`, `views_year_stat` with compact collapsible UI
+  - Cards show summary stats inline: Total | Unique | Last viewed
+  - Click to expand and reveal interactive chart
+  - Charts lazy-load only when expanded for better performance
+  - Cards positioned inline for horizontal layout
+
+- **🎨 Page Analytics Widget**
+  - Added support for `period='year'` parameter to display yearly statistics
+  - Added support for `period='custom'` with `start_date` and `end_date` parameters for custom date ranges
+  - Enhanced `page_analytics_widget` to automatically display appropriate statistics based on period
+  - Added `show_charts=False` parameter to enable/disable chart visualizations
+  - Example usage:
+    ```django
+    {% page_analytics_widget obj=article period='year' show_charts=True %}
+    {% page_analytics_widget obj=article period='custom' start_date=start end_date=end %}
+    ```
+
+- **📈 Chart-Enabled Template Tags**
+  - All period-specific tags now support chart visualization with styling options:
+    - `{% views_week_stat obj=article show_chart=True chart_type='line' chart_color='#007bff' %}` - 7-day trend
+    - `{% views_month_stat obj=article show_chart=True chart_type='bar' %}` - 30-day trend
+    - `{% views_year_stat obj=article show_chart=True chart_color='#28a745' %}` - 12-month trend
+  - Customizable chart types: 'line' (default for week/month) or 'bar' (default for year)
+  - Custom color support via `chart_color` parameter (e.g., '#007bff', 'rgb(255, 99, 132)')
+  - Charts automatically excluded for short periods (e.g., today) where they don't make sense
+  - Responsive chart design adapts to mobile screens
+
+### Removed
+- **🗑️ Aggregate Stats Widget**
+  - Removed `{% aggregate_stats_widget %}` template tag (redundant with individual stat cards)
+  - Removed `aggregate_stats.html` template
+
+### Technical Details
+- **🔧 Database Query Optimization**
+  - All unique views methods use `values('session_key').distinct().count()` for efficient unique counting
+  - Custom period queries support both total and unique view counting
+  - Proper date range filtering with `timestamp__gte` and `timestamp__lte`
+
+- **🎨 Chart.js Integration**
+  - CDN-loaded Chart.js 4.4.1 (no npm dependencies required)
+  - Custom `DjInsightChart` JavaScript helper with utility functions:
+    - `createLineChart()` - Create line/trend charts with customizable colors
+    - `createBarChart()` - Create bar/column charts with customizable colors
+    - `createMultiLineChart()` - Create multi-dataset comparison charts
+  - Parameter-based architecture: existing methods like `get_views_this_week()` accept `chart_data=True` to return structured data for charts
+  - Built-in color schemes with override support via `chart_color` parameter
+  - Responsive design with mobile adaptations
+  - New template filter `to_json` for safe JavaScript data serialization
+
+### Documentation
+- **📖 Template Updates**
+  - Created 8 new template files in `djinsight/templates/djinsight/stats/`:
+    - `views_year.html` - Year statistics template with optional chart
+    - `views_last_year.html` - Last year statistics template
+    - `unique_views_today.html` - Unique daily visitors template
+    - `unique_views_week.html` - Unique weekly visitors template with optional chart
+    - `unique_views_month.html` - Unique monthly visitors template with optional chart
+    - `unique_views_year.html` - Unique yearly visitors template
+    - `unique_views_last_year.html` - Unique last year visitors template
+    - `views_custom_period.html` - Custom period statistics template
+  - New `chart_base.html` - Shared Chart.js configuration and utilities
+
+### Migration Notes
+- **✅ Backward Compatibility**
+  - All existing template tags and methods continue to work without modification
+  - New features are additive and don't break existing functionality
+  - Default behavior unchanged for existing implementations
+
 ## [0.1.8] - 2025-12-04
 
 ### Changed

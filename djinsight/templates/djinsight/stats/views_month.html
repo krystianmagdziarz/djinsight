@@ -1,9 +1,0 @@
-{% load djinsight_tags %}
-{% if no_permission %}
-    <!-- djinsight: Access denied -->
-{% else %}
-<div class="djinsight-stat-item djinsight-views-month">
-    <strong>Views This Month:</strong>
-    <span class="djinsight-stat-value">{{ views_this_month|format_view_count }}</span>
-</div>
-{% endif %} 
