@@ -1,3 +1,15 @@
+## [0.3.1] - 2025-12-09
+
+### Added
+
+- MCP integration polishing and official djinsight-mcp MCP server example
+- Updated README with Claude Desktop configuration
+
+### Fixed
+
+- MCP JSON Schema and JSON-RPC compatibility issues in tools definitions
+
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

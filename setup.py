@@ -10,11 +10,11 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name="djinsight",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_packages(),
     include_package_data=True,
     license="MIT",
-    description="Modern, extensible analytics for Django with async support, MCP integration, and universal stats API",
+    description="MCP-first analytics for Django/Wagtail package for tracking page view statistics with Redis and async processing",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/krystianmagdziarz/djinsight",

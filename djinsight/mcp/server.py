@@ -30,9 +30,9 @@ class MCPServer:
                     "properties": {
                         "content_type": {
                             "type": "string",
-                            "description": "Content type in format 'app_label.model' (e.g., 'blog.Article')",
+                            "description": "Content type in format 'app_label.model' (e.g., 'blog.post')",
                         },
-                        "object_id": {"type": "integer", "description": "Object ID"},
+                        "object_id": {"type": "number", "description": "Object ID"},
                     },
                     "required": ["content_type", "object_id"],
                 },
@@ -48,15 +48,13 @@ class MCPServer:
                             "description": "Content type in format 'app_label.model' (e.g., 'blog.Article')",
                         },
                         "limit": {
-                            "type": "integer",
+                            "type": "number",
                             "description": "Number of results to return (default: 10)",
-                            "default": 10,
                         },
                         "metric": {
                             "type": "string",
                             "enum": ["total_views", "unique_views"],
                             "description": "Metric to sort by (default: total_views)",
-                            "default": "total_views",
                         },
                     },
                     "required": ["content_type"],
@@ -72,12 +70,11 @@ class MCPServer:
                             "type": "string",
                             "description": "Content type in format 'app_label.model'",
                         },
-                        "object_id": {"type": "integer", "description": "Object ID"},
+                        "object_id": {"type": "number", "description": "Object ID"},
                         "period": {
                             "type": "string",
                             "enum": ["today", "week", "month", "year"],
                             "description": "Time period",
-                            "default": "week",
                         },
                     },
                     "required": ["content_type", "object_id", "period"],
@@ -86,7 +83,10 @@ class MCPServer:
             {
                 "name": "list_tracked_models",
                 "description": "List all content types that are being tracked",
-                "inputSchema": {"type": "object", "properties": {}},
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                },
             },
         ]
 

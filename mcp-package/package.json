@@ -1,0 +1,28 @@
+{
+  "name": "djinsight-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for djinsight Django analytics",
+  "main": "index.js",
+  "bin": {
+    "djinsight-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "mcp",
+    "django",
+    "analytics",
+    "djinsight",
+    "claude"
+  ],
+  "author": "MDigital",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

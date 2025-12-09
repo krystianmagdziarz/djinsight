@@ -98,64 +98,45 @@ DJINSIGHT = {
 }
 ```
 
-## MCP Integration
+## MCP Integration (Claude Desktop)
 
-**Secure AI agent access to your Django analytics.**
+**Works with both local and remote Django servers:**
 
-### 1. Generate API Key
+1. **Create API key** in Django admin (`/admin/djinsight/mcpapikey/`)
+
+2. **Install djinsight-mcp** (local package):
 
 ```bash
-python manage.py shell
+cd /path/to/djinsight/mcp-package
+npm install
 ```
 
-```python
-from djinsight.models import MCPAPIKey
-
-# Create API key
-api_key = MCPAPIKey.create_key(
-    name="Claude Desktop",
-    description="API key for Claude desktop app"
-)
-print(f"API Key: {api_key.key}")
-# Save this key securely!
-```
-
-Or create via Django Admin: `/admin/djinsight/mcpapikey/`
-
-### 2. Configure Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+3. **Configure Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "my-django-blog": {
-      "command": "curl",
-      "args": [
-        "-X", "POST",
-        "https://myblog.com/djinsight/mcp/",
-        "-H", "Authorization: Bearer YOUR_API_KEY_HERE",
-        "-H", "Content-Type: application/json",
-        "-d", "@-"
-      ]
+    "djinsight": {
+      "command": "node",
+      "args": ["/path/to/djinsight/mcp-package/index.js"],
+      "env": {
+        "DJINSIGHT_URL": "http://localhost:8001",
+        "DJINSIGHT_API_KEY": "YOUR_API_KEY_HERE"
+      }
     }
   }
 }
 ```
 
-**Replace:**
-- `my-django-blog` - Your service name
-- `https://myblog.com` - Your Django app URL
-- `YOUR_API_KEY_HERE` - API key from step 1
+4. **Restart Claude Desktop**
 
-### 3. Available MCP Tools
+**Available MCP tools:**
+- `get_page_stats` - Get statistics for specific object  
+- `get_top_pages` - Get top performing pages
+- `get_period_stats` - Get time period statistics  
+- `list_tracked_models` - List all tracked models
 
-- `get_page_stats` - Get statistics for specific page
-- `get_top_pages` - List top performing content
-- `get_period_stats` - Get stats for time period (today/week/month/year)
-- `list_tracked_models` - Show all tracked content types
-
-### 4. Example Claude Interaction
+### Example Claude Interaction
 
 ```
 You: "What are my top 5 blog articles this week?"
