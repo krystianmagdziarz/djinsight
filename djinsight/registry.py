@@ -48,6 +48,10 @@ class ProviderRegistry:
             provider_class = cls._providers.get(cls._default_provider)
         else:
             if djinsight_settings.USE_REDIS:
+                if use_async:
+                    from djinsight.providers.redis import AsyncRedisProvider
+
+                    return AsyncRedisProvider()
                 from djinsight.providers.redis import RedisProvider
 
                 provider_class = RedisProvider

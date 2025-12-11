@@ -352,7 +352,8 @@ def generate_daily_summaries(days_back=None):
     )
 
     for view_data in page_views:
-        content_type = view_data["content_type"]
+        content_type_id = view_data["content_type"]
+        content_type = ContentType.objects.get(pk=content_type_id)
         object_id = view_data["object_id"]
         date = view_data["timestamp__date"]
 

@@ -128,6 +128,15 @@ class MCPServer:
         if not ct:
             return {"error": f"Invalid content type: {content_type_str}"}
 
+        # Try to get the actual object for its string representation
+        obj_str = None
+        try:
+            model_class = ct.model_class()
+            obj = model_class.objects.get(pk=object_id)
+            obj_str = str(obj)
+        except Exception:
+            obj_str = None
+
         stats = PageViewStatistics.objects.filter(
             content_type=ct, object_id=object_id
         ).first()
@@ -136,6 +145,7 @@ class MCPServer:
             return {
                 "content_type": content_type_str,
                 "object_id": object_id,
+                "object": obj_str,
                 "total_views": 0,
                 "unique_views": 0,
                 "first_viewed_at": None,
@@ -145,6 +155,7 @@ class MCPServer:
         return {
             "content_type": content_type_str,
             "object_id": object_id,
+            "object": obj_str,
             "total_views": stats.total_views,
             "unique_views": stats.unique_views,
             "first_viewed_at": stats.first_viewed_at.isoformat()
@@ -170,12 +181,24 @@ class MCPServer:
             f"-{metric}"
         )[:limit]
 
+        # Get all objects at once for efficiency
+        model_class = ct.model_class()
+        object_ids = [s.object_id for s in stats]
+        objects_dict = {}
+
+        try:
+            objects = model_class.objects.filter(pk__in=object_ids)
+            objects_dict = {obj.pk: str(obj) for obj in objects}
+        except Exception as e:
+            logger.warning(f"Could not fetch objects for top pages: {e}")
+
         return {
             "content_type": content_type_str,
             "metric": metric,
             "results": [
                 {
                     "object_id": s.object_id,
+                    "object": objects_dict.get(s.object_id),
                     "total_views": s.total_views,
                     "unique_views": s.unique_views,
                     "last_viewed_at": s.last_viewed_at.isoformat()
@@ -200,6 +223,7 @@ class MCPServer:
         try:
             model_class = ct.model_class()
             obj = model_class.objects.get(pk=object_id)
+            obj_str = str(obj)
         except Exception as e:
             return {"error": f"Object not found: {e}"}
 
@@ -219,6 +243,7 @@ class MCPServer:
         return {
             "content_type": content_type_str,
             "object_id": object_id,
+            "object": obj_str,
             "period": period,
             "data": views,
         }

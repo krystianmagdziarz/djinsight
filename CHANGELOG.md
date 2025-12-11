@@ -1,3 +1,54 @@
+## [0.3.2] - 2025-12-11
+
+### Added
+
+- **🎨 Enhanced Template Tag System**
+  - Added support for `metric="unique_views"` parameter in `{% stats %}` tag
+  - New template examples for displaying unique view statistics
+  - Unique views charts with customizable colors
+  - Side-by-side comparison of total vs unique views
+
+- **🔄 Async Redis Support**
+  - New `AsyncRedisProvider` class for async Django views
+  - Full async/await support using `redis.asyncio`
+  - Parallel sync and async provider architecture
+  - `ProviderRegistry` now returns appropriate provider based on `use_async` parameter
+
+- **🤖 Enhanced MCP Responses**
+  - MCP tools now include `object` field with human-readable object name (`__str__()`)
+  - Better AI agent experience with readable object descriptions
+  - All MCP responses include both IDs and descriptive names:
+    - `get_page_stats` - includes object name
+    - `get_top_pages` - includes object names for all results
+    - `get_period_stats` - includes object name
+  - Efficient bulk fetching for top pages
+
+### Fixed
+
+- **🐛 Critical: Unique Views Tracking**
+  - Fixed unique views being counted multiple times for same session
+  - Session keys now always marked in Redis (not only on first view)
+  - Both `RedisProvider` and `AsyncRedisProvider` fixed
+  - Proper distinction between total and unique view counters
+
+- **🐛 Database Tasks**
+  - Fixed `generate_daily_summaries` task with ContentType ID assignment
+  - Proper ContentType instance fetching from `.values()` queries
+
+### Enhanced
+
+- **⚡ Generic Metric Support in Renderers**
+  - `_render_text()` now supports any metric name dynamically
+  - Forward-compatible with future metric additions
+  - Automatic fallback for backward compatibility
+
+### Technical Details
+
+- Redis session keys now set on every view (prevents expiration issues)
+- Async Redis uses connection pooling with lazy initialization
+- Clean separation between sync `RedisProvider` and async `AsyncRedisProvider`
+- No more coroutine errors in Celery tasks
+
 ## [0.3.1] - 2025-12-09
 
 ### Added

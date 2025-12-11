@@ -66,7 +66,25 @@
         </div>
 
         <div class="stat-item">
-            <span class="stat-label">7. Format count filter:</span><br>
+            <span class="stat-label">7. Stats - Unique views (text):</span><br>
+            {% stats obj=post metric="unique_views" %} unique visitors<br>
+            <code>{% verbatim %}{% stats obj=post metric="unique_views" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">8. Stats - Unique views this week (chart):</span><br>
+            {% stats obj=post metric="unique_views" period="week" output="chart" chart_color="#6f42c1" %}<br>
+            <code>{% verbatim %}{% stats obj=post metric="unique_views" period="week" output="chart" chart_color="#6f42c1" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">9. Stats - Unique vs Total views comparison:</span><br>
+            Total: {% stats obj=post %} | Unique: {% stats obj=post metric="unique_views" %}<br>
+            <code>{% verbatim %}Total: {% stats obj=post %} | Unique: {% stats obj=post metric="unique_views" %}{% endverbatim %}</code>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">10. Format count filter:</span><br>
             Example: {{ 12345|format_count }}<br>
             <code>{% verbatim %}{{ 12345|format_count }}{% endverbatim %}</code>
         </div>
