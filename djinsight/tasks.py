@@ -228,7 +228,7 @@ def process_batch(keys):
             data = json.loads(value.decode("utf-8"))
 
             # Extract data with validation
-            page_id = data.get("page_id")
+            page_id = data.get("object_id")
             content_type = data.get("content_type")
             url = data.get("url")
             session_key = data.get("session_key")
