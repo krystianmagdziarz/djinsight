@@ -10,6 +10,7 @@ class DjInsightSettings:
         "AUTO_INJECT_TRACKING": True,
         "ADMIN_ONLY": False,
         "REDIS_HOST": "localhost",
+        "REDIS_URL": None,
         "REDIS_PORT": 6379,
         "REDIS_DB": 0,
         "REDIS_PASSWORD": None,

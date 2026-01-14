@@ -21,15 +21,23 @@ class RedisProvider(BaseProvider):
 
     def _get_redis_client(self):
         try:
-            client = redis.Redis(
-                host=djinsight_settings.REDIS_HOST,
-                port=djinsight_settings.REDIS_PORT,
-                db=djinsight_settings.REDIS_DB,
-                password=djinsight_settings.REDIS_PASSWORD,
-                socket_timeout=djinsight_settings.REDIS_TIMEOUT,
-                socket_connect_timeout=djinsight_settings.REDIS_CONNECT_TIMEOUT,
-                health_check_interval=30,
-            )
+            if djinsight_settings.REDIS_URL:
+                client = redis.from_url(
+                    djinsight_settings.REDIS_URL,
+                    socket_timeout=djinsight_settings.REDIS_TIMEOUT,
+                    socket_connect_timeout=djinsight_settings.REDIS_CONNECT_TIMEOUT,
+                    health_check_interval=30,
+                )
+            else:
+                client = redis.Redis(
+                    host=djinsight_settings.REDIS_HOST,
+                    port=djinsight_settings.REDIS_PORT,
+                    db=djinsight_settings.REDIS_DB,
+                    password=djinsight_settings.REDIS_PASSWORD,
+                    socket_timeout=djinsight_settings.REDIS_TIMEOUT,
+                    socket_connect_timeout=djinsight_settings.REDIS_CONNECT_TIMEOUT,
+                    health_check_interval=30,
+                )
             client.ping()
             logger.info("Redis connection established")
             return client
@@ -130,14 +138,21 @@ class AsyncRedisProvider(AsyncBaseProvider):
         """Get or create async Redis client."""
         if self.client is None:
             try:
-                self.client = aioredis.Redis(
-                    host=djinsight_settings.REDIS_HOST,
-                    port=djinsight_settings.REDIS_PORT,
-                    db=djinsight_settings.REDIS_DB,
-                    password=djinsight_settings.REDIS_PASSWORD,
-                    socket_timeout=djinsight_settings.REDIS_TIMEOUT,
-                    socket_connect_timeout=djinsight_settings.REDIS_CONNECT_TIMEOUT,
-                )
+                if djinsight_settings.REDIS_URL:
+                    self.client = aioredis.from_url(
+                        djinsight_settings.REDIS_URL,
+                        socket_timeout=djinsight_settings.REDIS_TIMEOUT,
+                        socket_connect_timeout=djinsight_settings.REDIS_CONNECT_TIMEOUT,
+                    )
+                else:
+                    self.client = aioredis.Redis(
+                        host=djinsight_settings.REDIS_HOST,
+                        port=djinsight_settings.REDIS_PORT,
+                        db=djinsight_settings.REDIS_DB,
+                        password=djinsight_settings.REDIS_PASSWORD,
+                        socket_timeout=djinsight_settings.REDIS_TIMEOUT,
+                        socket_connect_timeout=djinsight_settings.REDIS_CONNECT_TIMEOUT,
+                    )
                 await self.client.ping()
                 logger.info("Async Redis connection established")
                 self._initialized = True
