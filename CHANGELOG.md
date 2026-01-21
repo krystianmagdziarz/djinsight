@@ -1,3 +1,17 @@
+## [0.3.4] - 2025-01-21
+
+### Added
+
+- REDIS_URL Environment Variable Support
+  - Added support for `REDIS_URL` environment variable for Redis connection
+  - Simplifies configuration in cloud environments (Heroku, Railway, Render, etc.)
+  - Falls back to individual `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` settings if `REDIS_URL` is not set
+
+### Fixed
+
+- Redis Data Processing
+  - Fixed `object_id` usage instead of `page_id` in Redis data processing for consistency
+
 ## [0.3.3] - 2025-12-11
 
 ### Changed

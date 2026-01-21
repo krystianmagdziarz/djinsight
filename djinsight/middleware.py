@@ -50,6 +50,7 @@ class TrackingMiddleware:
     def _find_tracked_object(self, request):
         """Find object to track. Injects script for any object with pk.
         Actual recording is filtered by ContentTypeRegistry in views."""
+
         for attr in ["_djinsight_tracked_object", "object", "page"]:
             obj = getattr(request, attr, None)
             if obj and hasattr(obj, "pk") and obj.pk:
