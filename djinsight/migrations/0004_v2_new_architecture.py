@@ -105,7 +105,6 @@ def migrate_mixin_statistics(apps, schema_editor):
                     %s, "{pk_col}", COALESCE(total_views, 0), {unique_views}, {first_viewed}, {last_viewed}, NOW()
                 FROM {schema_prefix}"{table_name}"
                 WHERE total_views > 0 OR unique_views > 0
-                ON CONFLICT (content_type_id, object_id) DO NOTHING
             """, [ct.id])
 
 
