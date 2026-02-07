@@ -356,3 +356,5 @@ webServers.xml
 
 package-lock.json
 example/db.sqlite3
+.claude/
+CLAUDE.md

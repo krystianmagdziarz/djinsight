@@ -16,7 +16,6 @@ class RecordPageViewTest(TestCase):
         """Set up test data."""
         self.client = Client()
         self.content_type = ContentType.objects.get_for_model(PageViewStatistics)
-        ContentTypeRegistry.register(PageViewStatistics)
 
     def test_record_view_creates_event(self):
         """Test that posting to record_page_view creates an event."""
@@ -67,27 +66,6 @@ class RecordPageViewTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-
-    def test_record_view_ignores_unregistered_model(self):
-        """Test that unregistered models are ignored."""
-        # Unregister the model
-        ContentTypeRegistry.objects.filter(content_type=self.content_type).delete()
-
-        data = {
-            "content_type": f"{self.content_type.app_label}.{self.content_type.model}",
-            "object_id": 1,
-            "url": "/test/",
-        }
-
-        response = self.client.post(
-            reverse("djinsight:record_page_view"),
-            data=json.dumps(data),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-        result = response.json()
-        self.assertEqual(result.get("status"), "ignored")
 
 
 class MCPEndpointTest(TestCase):

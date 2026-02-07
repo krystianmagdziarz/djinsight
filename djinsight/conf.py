@@ -7,7 +7,6 @@ from django.utils.module_loading import import_string
 class DjInsightSettings:
     DEFAULTS = {
         "ENABLE_TRACKING": True,
-        "AUTO_INJECT_TRACKING": True,
         "ADMIN_ONLY": False,
         "REDIS_HOST": "localhost",
         "REDIS_URL": None,
@@ -23,7 +22,6 @@ class DjInsightSettings:
         "TRACK_AUTHENTICATED": True,
         "TRACK_STAFF": True,
         "TRACK_SUPERUSER": True,
-        "MIDDLEWARE_CLASS": "djinsight.middleware.TrackingMiddleware",
         "STATS_TAG_FUNCTION": "djinsight.templatetags.djinsight_tags.stats",
         "WIDGET_RENDERER": "djinsight.renderers.DefaultWidgetRenderer",
         "CHART_RENDERER": "djinsight.renderers.DefaultChartRenderer",
@@ -84,9 +82,6 @@ class DjInsightSettings:
     def get_class(self, setting_name: str) -> Callable:
         class_path = getattr(self, setting_name)
         return import_string(class_path)
-
-    def get_middleware_class(self):
-        return self.get_class("MIDDLEWARE_CLASS")
 
     def get_provider_class(self):
         provider_class_path = getattr(self, "PROVIDER_CLASS")

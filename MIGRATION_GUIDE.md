@@ -7,7 +7,7 @@ Version 0.2.0 is a **major rewrite** with significant architectural improvements
 - ✅ No more mixins - statistics stored in separate tables
 - ✅ ContentType-based tracking - track any model without modifying it
 - ✅ One universal `{% stats %}` tag instead of 20+ redundant tags
-- ✅ Automatic middleware-based tracking injection
+- ✅ Simple `{% track %}` template tag for tracking
 - ✅ Fully extensible architecture via settings
 - ✅ MCP-style provider system for custom backends
 
@@ -30,14 +30,7 @@ class Article(models.Model, PageViewStatisticsMixin):
 class Article(models.Model):
     title = models.CharField(max_length=200)
 
-# Register for tracking in your AppConfig:
-from django.apps import AppConfig
-from djinsight.models import ContentTypeRegistry
-
-class BlogConfig(AppConfig):
-    def ready(self):
-        from blog.models import Article
-        ContentTypeRegistry.register(Article)
+# Just add {% track %} to your template - no registration needed!
 ```
 
 ### 2. Template Tag Changes
@@ -59,32 +52,17 @@ class BlogConfig(AppConfig):
 ```django
 {% load djinsight_tags %}
 
-{# ONE universal tag for everything! #}
+{# Add tracking to your template #}
+{% track %}
+
+{# ONE universal tag for stats! #}
 {% stats metric="views" period="today" output="text" %}
 {% stats metric="unique_views" period="week" output="chart" chart_type="line" %}
 {% stats metric="views" period="month" output="widget" %}
 {% stats metric="all" period="year" output="json" %}
-
-{# Optional: Manual tracking (auto-injected by middleware) #}
-{% track %}
 ```
 
-### 3. Middleware (New!)
-
-**Add to settings.py:**
-```python
-MIDDLEWARE = [
-    # ... other middleware
-    'djinsight.middleware.TrackingMiddleware',  # NEW!
-]
-
-DJINSIGHT = {
-    'AUTO_INJECT_TRACKING': True,  # Automatic JS injection
-    'ENABLE_TRACKING': True,
-}
-```
-
-### 4. Settings Structure
+### 3. Settings Structure
 
 **OLD (v0.1.x):**
 ```python
@@ -99,7 +77,6 @@ DJINSIGHT_REDIS_HOST = 'localhost'
 DJINSIGHT = {
     # Core settings
     'ENABLE_TRACKING': True,
-    'AUTO_INJECT_TRACKING': True,
     'ADMIN_ONLY': False,
 
     # Redis settings
@@ -110,7 +87,6 @@ DJINSIGHT = {
     'REDIS_PASSWORD': None,
 
     # Extensibility - provide your own implementations!
-    'MIDDLEWARE_CLASS': 'djinsight.middleware.TrackingMiddleware',
     'WIDGET_RENDERER': 'djinsight.renderers.DefaultWidgetRenderer',
     'CHART_RENDERER': 'djinsight.renderers.DefaultChartRenderer',
     'PROVIDER_CLASS': 'djinsight.providers.redis.RedisProvider',
@@ -186,44 +162,21 @@ class Article(models.Model):
     title = models.CharField(max_length=200)
 ```
 
-#### Register Models for Tracking
-
-```python
-# blog/apps.py
-from django.apps import AppConfig
-
-class BlogConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'blog'
-
-    def ready(self):
-        from djinsight.models import ContentTypeRegistry
-        from blog.models import Article, Post
-
-        ContentTypeRegistry.register(Article)
-        ContentTypeRegistry.register(Post)
-```
-
 #### Update Templates
 
-Replace old tags with universal `{% stats %}`:
+Replace old tags with universal `{% stats %}` and add `{% track %}`:
 
 ```django
+{% load djinsight_tags %}
+
+{# Add tracking #}
+{% track %}
+
 {# OLD #}
 {% views_week_stat show_chart=True chart_type="line" chart_color="#007bff" %}
 
 {# NEW #}
 {% stats metric="views" period="week" output="chart" chart_type="line" chart_color="#007bff" %}
-```
-
-#### Add Middleware
-
-```python
-# settings.py
-MIDDLEWARE = [
-    # ...
-    'djinsight.middleware.TrackingMiddleware',
-]
 ```
 
 #### Update Settings
@@ -232,7 +185,6 @@ MIDDLEWARE = [
 ```python
 DJINSIGHT = {
     'ENABLE_TRACKING': True,
-    'AUTO_INJECT_TRACKING': True,
     'USE_REDIS': False,  # Direct database writes
     'USE_CELERY': False,
 }
@@ -242,7 +194,6 @@ DJINSIGHT = {
 ```python
 DJINSIGHT = {
     'ENABLE_TRACKING': True,
-    'AUTO_INJECT_TRACKING': True,
     'USE_REDIS': True,
     'USE_CELERY': True,
     'REDIS_HOST': 'localhost',
@@ -298,9 +249,9 @@ class Migration(migrations.Migration):
 - `chart_color`: hex color
 - `obj`: object (auto-detected from context)
 
-### 2. Automatic Middleware Tracking
+### 2. Simple Tracking Tag
 
-No more `{% page_view_tracker %}` in every template! Middleware auto-injects tracking.
+Just add `{% track %}` to any template - no registration or configuration needed!
 
 ### 3. Extensible Architecture
 
@@ -420,7 +371,7 @@ python manage.py migrate djinsight
 v0.2.0 provides:
 - ✅ Cleaner models (no mixins)
 - ✅ Simpler templates (one universal tag)
-- ✅ Automatic tracking (middleware)
+- ✅ Simple tracking (`{% track %}` tag)
 - ✅ Full extensibility (custom implementations)
 - ✅ Better performance (optimized indexes)
 - ✅ Modern architecture (MCP-style)

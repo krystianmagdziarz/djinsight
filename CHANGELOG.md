@@ -1,3 +1,21 @@
+## [0.3.5] - 2025-02-07
+
+### Removed
+
+- **Middleware removed** - `TrackingMiddleware` is no longer needed
+  - Use `{% track %}` template tag instead
+  - Simpler setup, fewer moving parts
+
+- **Model registration removed** - `ContentTypeRegistry.register()` no longer required
+  - Just add `{% track %}` to your template
+  - Tracking works automatically for any model
+
+### Changed
+
+- Simplified installation - no middleware configuration needed
+- Updated README with clearer documentation
+- `ContentTypeRegistry` is now optional (for admin visibility only)
+
 ## [0.3.4] - 2025-01-21
 
 ### Added

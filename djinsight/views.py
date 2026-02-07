@@ -12,7 +12,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from djinsight.conf import djinsight_settings
-from djinsight.models import ContentTypeRegistry
 from djinsight.registry import ProviderRegistry
 from djinsight.utils import get_client_ip
 
@@ -69,22 +68,6 @@ def record_page_view(request):
         url = data["url"]
         referrer = data.get("referrer", "")[:500]
         user_agent = data.get("user_agent", "")[:1000]
-
-        # Check if content type is registered for tracking
-        try:
-            app_label, model_name = content_type_str.split(".")
-            ct = ContentType.objects.get(app_label=app_label, model=model_name.lower())
-            if not ContentTypeRegistry.objects.filter(
-                content_type=ct, enabled=True
-            ).exists():
-                return JsonResponse(
-                    {"status": "ignored", "message": "Content type not registered"},
-                    status=200,
-                )
-        except (ContentType.DoesNotExist, ValueError):
-            return JsonResponse(
-                {"status": "ignored", "message": "Invalid content type"}, status=200
-            )
 
         session_key = request.session.session_key
         if not session_key:
