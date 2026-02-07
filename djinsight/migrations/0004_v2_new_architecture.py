@@ -34,45 +34,79 @@ def convert_content_type_strings_to_ids(apps, schema_editor):
 
 def migrate_mixin_statistics(apps, schema_editor):
     """Migrate total_views/unique_views from models with PageViewStatisticsMixin fields
-    into the new PageViewStatistics table."""
+    into the new PageViewStatistics table.
+
+    Uses raw SQL to discover tables with mixin columns because at migration time
+    the Python model class may have already removed the mixin (code runs ahead of migrations).
+    """
+    connection = schema_editor.connection
     ContentType = apps.get_model('contenttypes', 'ContentType')
-    PageViewStatistics = apps.get_model('djinsight', 'PageViewStatistics')
 
-    from django.apps import apps as real_apps
+    with connection.cursor() as cursor:
+        # Find all tables that have the mixin columns
+        cursor.execute("""
+            SELECT table_schema, table_name
+            FROM information_schema.columns
+            WHERE column_name = 'total_views'
+            AND table_name NOT LIKE 'djinsight_%%'
+            GROUP BY table_schema, table_name
+            HAVING COUNT(*) FILTER (WHERE column_name IN ('total_views', 'unique_views', 'first_viewed_at', 'last_viewed_at')) >= 1
+        """)
+        tables = cursor.fetchall()
 
-    for model in real_apps.get_models():
-        fields = {f.name for f in model._meta.get_fields()}
-        required = {'total_views', 'unique_views', 'first_viewed_at', 'last_viewed_at'}
-        if not required.issubset(fields):
-            continue
+        for table_schema, table_name in tables:
+            # Resolve app_label and model from the table name via django_content_type
+            # Table names follow pattern: app_model (e.g., puput_entrypage)
+            parts = table_name.split('_', 1)
+            if len(parts) != 2:
+                continue
 
-        ct = ContentType.objects.get_for_model(model)
-        Model = apps.get_model(model._meta.app_label, model._meta.model_name)
+            app_label, model_name = parts
 
-        objs = Model.objects.filter(
-            models.Q(total_views__gt=0) | models.Q(unique_views__gt=0)
-        )
-
-        batch = []
-        for obj in objs.iterator():
-            batch.append(PageViewStatistics(
-                content_type=ct,
-                object_id=obj.pk,
-                total_views=obj.total_views or 0,
-                unique_views=obj.unique_views or 0,
-                first_viewed_at=obj.first_viewed_at,
-                last_viewed_at=obj.last_viewed_at,
-            ))
-            if len(batch) >= 1000:
-                PageViewStatistics.objects.bulk_create(
-                    batch, batch_size=500, ignore_conflicts=True
+            try:
+                ct = ContentType.objects.get(
+                    app_label=app_label, model=model_name
                 )
-                batch = []
+            except ContentType.DoesNotExist:
+                continue
 
-        if batch:
-            PageViewStatistics.objects.bulk_create(
-                batch, batch_size=500, ignore_conflicts=True
-            )
+            # Check which columns actually exist
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_schema = %s AND table_name = %s
+                AND column_name IN ('total_views', 'unique_views', 'first_viewed_at', 'last_viewed_at')
+            """, [table_schema, table_name])
+            existing_cols = {row[0] for row in cursor.fetchall()}
+
+            if 'total_views' not in existing_cols:
+                continue
+
+            # Find the primary key column
+            cursor.execute("""
+                SELECT column_name FROM information_schema.key_column_usage
+                WHERE table_schema = %s AND table_name = %s
+                AND constraint_name LIKE '%%pkey'
+                LIMIT 1
+            """, [table_schema, table_name])
+            pk_row = cursor.fetchone()
+            pk_col = pk_row[0] if pk_row else 'id'
+
+            # Build and run the INSERT from the mixin table into PageViewStatistics
+            schema_prefix = f'"{table_schema}".' if table_schema and table_schema != 'public' else ''
+
+            first_viewed = 'first_viewed_at' if 'first_viewed_at' in existing_cols else 'NULL'
+            last_viewed = 'last_viewed_at' if 'last_viewed_at' in existing_cols else 'NULL'
+            unique_views = 'COALESCE(unique_views, 0)' if 'unique_views' in existing_cols else '0'
+
+            cursor.execute(f"""
+                INSERT INTO {schema_prefix}"djinsight_pageviewstatistics"
+                    (content_type_id, object_id, total_views, unique_views, first_viewed_at, last_viewed_at, updated_at)
+                SELECT
+                    %s, "{pk_col}", COALESCE(total_views, 0), {unique_views}, {first_viewed}, {last_viewed}, NOW()
+                FROM {schema_prefix}"{table_name}"
+                WHERE total_views > 0 OR unique_views > 0
+                ON CONFLICT (content_type_id, object_id) DO NOTHING
+            """, [ct.id])
 
 
 def noop(apps, schema_editor):
