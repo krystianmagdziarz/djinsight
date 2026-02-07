@@ -2,7 +2,7 @@
 djinsight - Django/Wagtail analytics package for real-time page view tracking.
 """
 
-__version__ = "0.3.6"
+__version__ = "0.3.7"
 __author__ = "MDigital"
 __email__ = "kontakt@mdigital.com.pl"
 __license__ = "MIT"
