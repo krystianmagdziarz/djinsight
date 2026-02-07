@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "djinsight"
-version = "0.3.5"
+version = "0.3.6"
 description = "MCP-first analytics for Django/Wagtail package for tracking page view statistics with Redis and async processing"
 readme = "README.md"
 license = {file = "LICENSE"}

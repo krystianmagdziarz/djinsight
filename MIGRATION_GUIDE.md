@@ -1,15 +1,17 @@
-# Migration Guide: djinsight v0.1.x → v0.2.0
+# Migration Guide: djinsight v0.1.x → v0.3.5
 
 ## Overview
 
-Version 0.2.0 is a **major rewrite** with significant architectural improvements:
+Version 0.2.0+ is a **major rewrite** with significant architectural improvements. Version 0.3.5 further simplifies the setup by removing middleware and model registration requirements.
 
-- ✅ No more mixins - statistics stored in separate tables
-- ✅ ContentType-based tracking - track any model without modifying it
-- ✅ One universal `{% stats %}` tag instead of 20+ redundant tags
-- ✅ Simple `{% track %}` template tag for tracking
-- ✅ Fully extensible architecture via settings
-- ✅ MCP-style provider system for custom backends
+- No more mixins - statistics stored in separate tables
+- ContentType-based tracking - track any model without modifying it
+- One universal `{% stats %}` tag instead of 20+ redundant tags
+- Simple `{% track %}` template tag for tracking (no middleware needed)
+- No model registration required - just add `{% track %}` to templates
+- Fully extensible architecture via settings
+- MCP server for AI agent integration
+- Async/sync provider support
 
 ## Breaking Changes
 
@@ -24,13 +26,13 @@ class Article(models.Model, PageViewStatisticsMixin):
     # Mixin added fields: total_views, unique_views, etc.
 ```
 
-**NEW (v0.2.0):**
+**NEW (v0.3.5):**
 ```python
 # NO MIXIN NEEDED! Clean models
 class Article(models.Model):
     title = models.CharField(max_length=200)
 
-# Just add {% track %} to your template - no registration needed!
+# Just add {% track %} to your template - that's it!
 ```
 
 ### 2. Template Tag Changes
@@ -48,7 +50,7 @@ class Article(models.Model):
 {% page_view_tracker %}  {# Manual tracking script #}
 ```
 
-**NEW (v0.2.0):**
+**NEW (v0.3.5):**
 ```django
 {% load djinsight_tags %}
 
@@ -72,21 +74,27 @@ DJINSIGHT_REDIS_HOST = 'localhost'
 # ... many separate settings
 ```
 
-**NEW (v0.2.0):**
+**NEW (v0.3.5):**
 ```python
 DJINSIGHT = {
     # Core settings
     'ENABLE_TRACKING': True,
     'ADMIN_ONLY': False,
 
-    # Redis settings
-    'REDIS_HOST': 'localhost',
-    'REDIS_PORT': 6379,
-    'REDIS_URL': None,
-    'REDIS_DB': 0,
-    'REDIS_PASSWORD': None,
+    # Synchronous mode (no Redis/Celery needed)
+    'USE_REDIS': False,
+    'USE_CELERY': False,
 
-    # Extensibility - provide your own implementations!
+    # Or async mode with Redis + Celery:
+    # 'USE_REDIS': True,
+    # 'USE_CELERY': True,
+    # 'REDIS_HOST': 'localhost',
+    # 'REDIS_PORT': 6379,
+    # 'REDIS_URL': None,  # or 'redis://localhost:6379/0' for cloud
+    # 'REDIS_DB': 0,
+    # 'REDIS_PASSWORD': None,
+
+    # Extensibility
     'WIDGET_RENDERER': 'djinsight.renderers.DefaultWidgetRenderer',
     'CHART_RENDERER': 'djinsight.renderers.DefaultChartRenderer',
     'PROVIDER_CLASS': 'djinsight.providers.redis.RedisProvider',
@@ -102,6 +110,21 @@ DJINSIGHT = {
 }
 ```
 
+### 4. Middleware Removed (v0.3.5)
+
+If you added `TrackingMiddleware` in v0.2.0, **remove it** - it no longer exists in v0.3.5:
+
+```python
+# REMOVE this from MIDDLEWARE:
+# 'djinsight.middleware.TrackingMiddleware',
+```
+
+Use `{% track %}` template tag instead.
+
+### 5. Model Registration Removed (v0.3.5)
+
+`ContentTypeRegistry.register()` is no longer required. Just add `{% track %}` to your template. `ContentTypeRegistry` is now optional (for admin visibility only).
+
 ## Migration Steps
 
 ### Step 1: Backup Your Database
@@ -110,10 +133,10 @@ DJINSIGHT = {
 python manage.py dumpdata djinsight > djinsight_backup.json
 ```
 
-### Step 2: Install djinsight v0.2.0
+### Step 2: Install djinsight v0.3.5
 
 ```bash
-pip install djinsight==0.2.0
+pip install djinsight==0.3.5
 ```
 
 ### Step 3: Run New Migrations
@@ -122,16 +145,18 @@ pip install djinsight==0.2.0
 python manage.py migrate djinsight
 ```
 
-This creates new tables:
-- `djinsight_contenttyperegistry`
-- `djinsight_pageviewstatistics` (replaces mixin fields)
-- `djinsight_pageviewevent` (replaces PageViewLog)
-- `djinsight_pageviewsummary` (enhanced version)
+This automatically:
+- Creates new tables (`ContentTypeRegistry`, `PageViewStatistics`, `PageViewEvent`)
+- Converts `PageViewSummary.content_type` from string to ForeignKey (data preserved)
+- Migrates mixin statistics (total_views, unique_views, etc.) to `PageViewStatistics` table
+- Renames `page_id` to `object_id` in `PageViewSummary`
 
-### Step 4: Migrate Existing Data
+### Step 4: Run Data Migration Command (Optional)
+
+If the automatic migration didn't catch all your data (e.g., PageViewLog records), run:
 
 ```bash
-# Dry run first (no changes)
+# Dry run first
 python manage.py migrate_to_v2 --dry-run
 
 # Actual migration
@@ -141,19 +166,14 @@ python manage.py migrate_to_v2
 python manage.py migrate_to_v2 --batch-size=500
 ```
 
-This migrates:
-- All PageViewLog → PageViewEvent
-- All PageViewSummary → new format with ContentType
-- All mixin statistics → PageViewStatistics table
-- Auto-registers tracked models in ContentTypeRegistry
-
 ### Step 5: Update Your Code
 
-#### Update Models
-Remove `PageViewStatisticsMixin` from your models:
+#### Remove Mixin from Models
 
 ```python
 # OLD
+from djinsight.models import PageViewStatisticsMixin
+
 class Article(models.Model, PageViewStatisticsMixin):
     title = models.CharField(max_length=200)
 
@@ -164,140 +184,123 @@ class Article(models.Model):
 
 #### Update Templates
 
-Replace old tags with universal `{% stats %}` and add `{% track %}`:
+Replace old tags with universal `{% stats %}` and `{% track %}`:
 
 ```django
 {% load djinsight_tags %}
 
-{# Add tracking #}
+{# Replace {% page_view_tracker %} with: #}
 {% track %}
 
-{# OLD #}
-{% views_week_stat show_chart=True chart_type="line" chart_color="#007bff" %}
-
-{# NEW #}
+{# Replace individual stat tags: #}
 {% stats metric="views" period="week" output="chart" chart_type="line" chart_color="#007bff" %}
 ```
 
+#### Accessing View Counts in Custom Templates
+
+If you previously accessed `article.total_views` directly (from the mixin), use `PageViewStatistics`:
+
+```python
+from djinsight.models import PageViewStatistics
+
+stats = PageViewStatistics.get_for_object(article)
+total = stats.total_views if stats else 0
+unique = stats.unique_views if stats else 0
+```
+
+Or create template filters:
+
+```python
+from django import template
+from djinsight.models import PageViewStatistics
+
+register = template.Library()
+
+@register.filter
+def total_views(obj):
+    try:
+        stats = PageViewStatistics.get_for_object(obj)
+        return stats.total_views if stats else 0
+    except Exception:
+        return 0
+
+@register.filter
+def unique_views(obj):
+    try:
+        stats = PageViewStatistics.get_for_object(obj)
+        return stats.unique_views if stats else 0
+    except Exception:
+        return 0
+```
+
+Then in templates: `{{ article|total_views }}` instead of `{{ article.total_views }}`.
+
 #### Update Settings
 
-**Option 1: Synchronous (no Redis/Celery):**
 ```python
 DJINSIGHT = {
     'ENABLE_TRACKING': True,
-    'USE_REDIS': False,  # Direct database writes
-    'USE_CELERY': False,
+    'USE_REDIS': False,   # Direct database writes
+    'USE_CELERY': False,  # No background processing
 }
 ```
 
-**Option 2: Async with Redis + Celery:**
+#### Remove Celery Beat Tasks (if disabling async)
+
+Remove djinsight tasks from your Celery beat schedule:
+
 ```python
-DJINSIGHT = {
-    'ENABLE_TRACKING': True,
-    'USE_REDIS': True,
-    'USE_CELERY': True,
-    'REDIS_HOST': 'localhost',
-    'REDIS_PORT': 6379,
-}
+# REMOVE these from app.conf.beat_schedule:
+# "process-page-views": { "task": "djinsight.tasks.process_page_views_task", ... },
+# "cleanup-old-data": { "task": "djinsight.tasks.cleanup_old_data_task", ... },
 ```
 
-### Step 6: Create Migration for Removing Mixin Fields (Optional)
+#### Remove TrackingMiddleware (if present)
 
-Once you've verified everything works, you can remove the old mixin fields:
+```python
+# REMOVE from MIDDLEWARE:
+# 'djinsight.middleware.TrackingMiddleware',
+```
+
+### Step 6: Create Migration for Removing Mixin Fields
+
+Once you've verified everything works, remove the old mixin fields:
 
 ```bash
-# This will create a migration to remove old fields
-python manage.py makemigrations blog --name remove_pageview_mixin_fields
+python manage.py makemigrations yourapp --name remove_pageview_mixin_fields
 python manage.py migrate
 ```
 
-Or manually create a migration:
+## New Features
 
-```python
-# blog/migrations/XXXX_remove_mixin_fields.py
-from django.db import migrations
-
-class Migration(migrations.Migration):
-    dependencies = [
-        ('blog', '0001_initial'),
-    ]
-
-    operations = [
-        migrations.RemoveField(model_name='article', name='total_views'),
-        migrations.RemoveField(model_name='article', name='unique_views'),
-        migrations.RemoveField(model_name='article', name='first_viewed_at'),
-        migrations.RemoveField(model_name='article', name='last_viewed_at'),
-    ]
-```
-
-## New Features in v0.2.0
-
-### 1. Universal Stats Tag
+### Universal Stats Tag
 
 ```django
 {% stats metric="views" period="today" output="text" %}
 {% stats metric="unique_views" period="week" output="chart" %}
-{% stats metric="all" period="month" output="widget" %}
 {% stats metric="views" period="custom" start_date=start end_date=end output="json" %}
 ```
 
-**Parameters:**
-- `metric`: views, unique_views, all
-- `period`: today, week, month, year, last_year, custom, total
-- `output`: text, chart, json, widget, badge
-- `chart_type`: line, bar, pie, area
-- `chart_color`: hex color
-- `obj`: object (auto-detected from context)
+| Parameter    | Options                                       |
+|-------------|-----------------------------------------------|
+| `metric`    | `views`, `unique_views`                       |
+| `period`    | `today`, `week`, `month`, `year`, `total`     |
+| `output`    | `text`, `chart`, `json`, `badge`              |
+| `chart_type`| `line`, `bar`                                 |
 
-### 2. Simple Tracking Tag
+### MCP Server (v0.3.0+)
 
-Just add `{% track %}` to any template - no registration or configuration needed!
+AI agents can query your analytics:
 
-### 3. Extensible Architecture
+1. Create API key in Django admin: `/admin/djinsight/mcpapikey/`
+2. Configure Claude Desktop with the MCP server
+3. Ask Claude: "What are my top 10 pages this week?"
 
-Create custom implementations:
+### Async Support (v0.3.0+)
 
-```python
-# myapp/renderers.py
-from djinsight.renderers import BaseRenderer
-
-class CustomRenderer(BaseRenderer):
-    def render(self):
-        # Your custom rendering logic
-        return f"Custom: {self.obj.total_views}"
-
-# settings.py
-DJINSIGHT = {
-    'WIDGET_RENDERER': 'myapp.renderers.CustomRenderer',
-}
-```
-
-### 4. Custom Providers
-
-```python
-# myapp/providers.py
-from djinsight.providers.base import BaseProvider
-
-class PostgreSQLProvider(BaseProvider):
-    async def record_view(self, event_data):
-        # Store directly in PostgreSQL instead of Redis
-        pass
-
-# settings.py
-DJINSIGHT = {
-    'PROVIDER_CLASS': 'myapp.providers.PostgreSQLProvider',
-}
-```
-
-### 5. MCP-Style Registry
-
-```python
-from djinsight.registry import ProviderRegistry
-from myapp.providers import CustomProvider
-
-ProviderRegistry.register('custom', CustomProvider)
-ProviderRegistry.set_default('custom')
-```
+- `AsyncDatabaseProvider` for async Django views
+- `AsyncRedisProvider` for async Redis operations
+- `REDIS_URL` environment variable support for cloud deployments
 
 ## API Changes
 
@@ -305,52 +308,27 @@ ProviderRegistry.set_default('custom')
 
 **OLD (v0.1.x):**
 ```python
-article = Article.objects.get(pk=1)
-print(article.total_views)  # Direct field access
-print(article.get_views_today())  # Mixin method
+article.total_views        # Direct field access
+article.get_views_today()  # Mixin method
 ```
 
-**NEW (v0.2.0):**
-```python
-from djinsight.models import PageViewStatistics, StatsQueryMixin
-
-article = Article.objects.get(pk=1)
-
-# Get statistics object
-stats = PageViewStatistics.get_for_object(article)
-print(stats.total_views)
-print(stats.unique_views)
-
-# Use helper methods
-views_today = StatsQueryMixin.get_views_today(article)
-views_week = StatsQueryMixin.get_views_week(article, chart_data=True)
-```
-
-### Incrementing Views
-
-**OLD:**
-```python
-article.increment_view_count(unique=True)
-```
-
-**NEW:**
+**NEW (v0.3.5):**
 ```python
 from djinsight.models import PageViewStatistics
 
-stats = PageViewStatistics.get_or_create_for_object(article)
-stats.increment_view_count(unique=True)
+stats = PageViewStatistics.get_for_object(article)
+stats.total_views
+stats.unique_views
 ```
 
 ## Rollback Plan
-
-If you need to rollback:
 
 1. Restore backup:
 ```bash
 python manage.py loaddata djinsight_backup.json
 ```
 
-2. Reinstall v0.1.x:
+2. Reinstall v0.1.9:
 ```bash
 pip install djinsight==0.1.9
 ```
@@ -363,17 +341,4 @@ python manage.py migrate djinsight
 ## Support
 
 - Issues: https://github.com/krystianmagdziarz/djinsight/issues
-- Documentation: Will be available soon
 - Changelog: See CHANGELOG.md
-
-## Summary
-
-v0.2.0 provides:
-- ✅ Cleaner models (no mixins)
-- ✅ Simpler templates (one universal tag)
-- ✅ Simple tracking (`{% track %}` tag)
-- ✅ Full extensibility (custom implementations)
-- ✅ Better performance (optimized indexes)
-- ✅ Modern architecture (MCP-style)
-
-Migration is straightforward and data is preserved!

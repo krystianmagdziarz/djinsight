@@ -1,3 +1,24 @@
+## [0.3.6] - 2026-02-07
+
+### Fixed
+
+- **Critical: Migration 0004 data loss bug** - `AlterField` on `pageviewsummary.content_type` tried to convert CharField (string "app.model") directly to ForeignKey (integer) without converting existing data first, causing `DataError: invalid input syntax for type integer`
+  - Added `RunPython` data migration to convert string content_type values to ContentType IDs before schema change
+  - Added automatic mixin statistics migration (total_views, unique_views, etc.) to PageViewStatistics table during migration
+  - No manual SQL intervention needed anymore
+
+- **migrate_to_v2 command crashes post-migration** - Command called `.split()` on content_type expecting a string, but after migration 0004 it's already a ForeignKey object
+  - Added `_resolve_content_type()` helper that handles string, integer, and ContentType object states
+  - Command now works correctly both before and after migration 0004
+  - Also registers models found in PageViewStatistics (not just PageViewEvent)
+
+### Changed
+
+- Updated MIGRATION_GUIDE.md to cover full v0.1.x → v0.3.5+ migration path
+  - Added template filter pattern for accessing view counts without mixin
+  - Added Celery beat task removal instructions
+  - Added middleware removal instructions
+
 ## [0.3.5] - 2025-02-07
 
 ### Removed

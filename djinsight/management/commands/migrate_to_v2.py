@@ -56,6 +56,30 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Migration failed: {e}'))
             raise
 
+    def _resolve_content_type(self, value):
+        """Resolve content_type to a ContentType instance.
+
+        Handles both:
+        - String values (pre-migration): "puput.entrypage"
+        - ContentType instances (post-migration): already a FK object
+        - Integer values: ContentType ID
+        """
+        if isinstance(value, ContentType):
+            return value
+
+        if isinstance(value, int):
+            return ContentType.objects.get(id=value)
+
+        if isinstance(value, str):
+            parts = value.split('.')
+            if len(parts) == 2:
+                app_label, model = parts
+                return ContentType.objects.get(
+                    app_label=app_label, model=model.lower()
+                )
+
+        return None
+
     def _migrate_page_view_logs(self, dry_run, batch_size):
         try:
             from djinsight.models import PageViewLog as OldPageViewLog
@@ -75,12 +99,9 @@ class Command(BaseCommand):
 
                 for log in batch:
                     try:
-                        parts = log.content_type.split('.')
-                        if len(parts) != 2:
+                        content_type = self._resolve_content_type(log.content_type)
+                        if not content_type:
                             continue
-
-                        app_label, model = parts
-                        content_type = ContentType.objects.get(app_label=app_label, model=model.lower())
 
                         new_events.append(PageViewEvent(
                             content_type=content_type,
@@ -110,59 +131,44 @@ class Command(BaseCommand):
             return 0
 
     def _migrate_summaries(self, dry_run, batch_size):
-        try:
-            from djinsight.models import PageViewSummary as OldPageViewSummary
+        """Migrate PageViewSummary records.
 
-            count = 0
-            old_queryset = OldPageViewSummary.objects.all().order_by('id')
-            total = old_queryset.count()
+        After migration 0004, content_type is already a ForeignKey and data
+        has been converted. This method handles both pre- and post-migration states.
+        """
+        count = 0
+        total = PageViewSummary.objects.count()
 
-            if total == 0:
-                return 0
-
-            self.stdout.write(f'\nMigrating {total} PageViewSummary records...')
-
-            for i in range(0, total, batch_size):
-                batch = list(old_queryset[i:i + batch_size])
-                new_summaries = []
-
-                for summary in batch:
-                    try:
-                        parts = summary.content_type.split('.')
-                        if len(parts) != 2:
-                            continue
-
-                        app_label, model = parts
-                        content_type_obj = ContentType.objects.get(app_label=app_label, model=model.lower())
-
-                        existing = PageViewSummary.objects.filter(
-                            content_type=content_type_obj,
-                            object_id=summary.page_id,
-                            date=summary.date
-                        ).exists()
-
-                        if not existing:
-                            new_summaries.append(PageViewSummary(
-                                content_type=content_type_obj,
-                                object_id=summary.page_id,
-                                date=summary.date,
-                                total_views=summary.total_views,
-                                unique_views=summary.unique_views,
-                            ))
-                    except Exception as e:
-                        self.stdout.write(self.style.WARNING(f'Skipping summary {summary.id}: {e}'))
-                        continue
-
-                if not dry_run and new_summaries:
-                    PageViewSummary.objects.bulk_create(new_summaries, batch_size=500, ignore_conflicts=True)
-
-                count += len(new_summaries)
-                if i % (batch_size * 5) == 0:
-                    self.stdout.write(f'Processed {count}/{total} summaries...')
-
-            return count
-        except ImportError:
+        if total == 0:
             return 0
+
+        self.stdout.write(f'\nChecking {total} PageViewSummary records...')
+
+        # Check if content_type is already a ForeignKey (post-migration)
+        sample = PageViewSummary.objects.first()
+        if sample and isinstance(sample.content_type, ContentType):
+            self.stdout.write(
+                self.style.SUCCESS('PageViewSummary already migrated (content_type is ForeignKey). Skipping.')
+            )
+            return 0
+
+        # Pre-migration: content_type is still a string
+        old_queryset = PageViewSummary.objects.all().order_by('id')
+
+        for i in range(0, total, batch_size):
+            batch = list(old_queryset[i:i + batch_size])
+
+            for summary in batch:
+                try:
+                    content_type = self._resolve_content_type(summary.content_type)
+                    if not content_type:
+                        continue
+                    count += 1
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f'Skipping summary {summary.id}: {e}'))
+                    continue
+
+        return count
 
     def _migrate_statistics(self, dry_run, batch_size):
         from django.apps import apps
@@ -230,6 +236,16 @@ class Command(BaseCommand):
         for event in PageViewEvent.objects.values('content_type').distinct():
             try:
                 content_type = ContentType.objects.get(id=event['content_type'])
+                model_class = content_type.model_class()
+                if model_class:
+                    tracked_models.add(model_class)
+            except:
+                pass
+
+        # Also register models that have PageViewStatistics records
+        for stats in PageViewStatistics.objects.values('content_type').distinct():
+            try:
+                content_type = ContentType.objects.get(id=stats['content_type'])
                 model_class = content_type.model_class()
                 if model_class:
                     tracked_models.add(model_class)

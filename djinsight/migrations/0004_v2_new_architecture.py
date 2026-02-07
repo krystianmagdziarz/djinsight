@@ -3,6 +3,82 @@ import django.db.models.deletion
 import django.utils.timezone
 
 
+def convert_content_type_strings_to_ids(apps, schema_editor):
+    """Convert string content_type values (e.g. 'puput.entrypage') to integer ContentType IDs."""
+    PageViewSummary = apps.get_model('djinsight', 'PageViewSummary')
+    ContentType = apps.get_model('contenttypes', 'ContentType')
+
+    distinct_types = (
+        PageViewSummary.objects.values_list('content_type', flat=True).distinct()
+    )
+
+    for ct_string in distinct_types:
+        if not ct_string or not isinstance(ct_string, str):
+            continue
+
+        parts = ct_string.split('.')
+        if len(parts) != 2:
+            continue
+
+        app_label, model = parts
+        try:
+            ct = ContentType.objects.get(
+                app_label=app_label, model=model.lower()
+            )
+            PageViewSummary.objects.filter(content_type=ct_string).update(
+                content_type=str(ct.id)
+            )
+        except ContentType.DoesNotExist:
+            pass
+
+
+def migrate_mixin_statistics(apps, schema_editor):
+    """Migrate total_views/unique_views from models with PageViewStatisticsMixin fields
+    into the new PageViewStatistics table."""
+    ContentType = apps.get_model('contenttypes', 'ContentType')
+    PageViewStatistics = apps.get_model('djinsight', 'PageViewStatistics')
+
+    from django.apps import apps as real_apps
+
+    for model in real_apps.get_models():
+        fields = {f.name for f in model._meta.get_fields()}
+        required = {'total_views', 'unique_views', 'first_viewed_at', 'last_viewed_at'}
+        if not required.issubset(fields):
+            continue
+
+        ct = ContentType.objects.get_for_model(model)
+        Model = apps.get_model(model._meta.app_label, model._meta.model_name)
+
+        objs = Model.objects.filter(
+            models.Q(total_views__gt=0) | models.Q(unique_views__gt=0)
+        )
+
+        batch = []
+        for obj in objs.iterator():
+            batch.append(PageViewStatistics(
+                content_type=ct,
+                object_id=obj.pk,
+                total_views=obj.total_views or 0,
+                unique_views=obj.unique_views or 0,
+                first_viewed_at=obj.first_viewed_at,
+                last_viewed_at=obj.last_viewed_at,
+            ))
+            if len(batch) >= 1000:
+                PageViewStatistics.objects.bulk_create(
+                    batch, batch_size=500, ignore_conflicts=True
+                )
+                batch = []
+
+        if batch:
+            PageViewStatistics.objects.bulk_create(
+                batch, batch_size=500, ignore_conflicts=True
+            )
+
+
+def noop(apps, schema_editor):
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,6 +87,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Create new models first
         migrations.CreateModel(
             name='ContentTypeRegistry',
             fields=[
@@ -65,6 +142,17 @@ class Migration(migrations.Migration):
                 'ordering': ['-timestamp'],
             },
         ),
+        # DATA MIGRATION: Convert string content_type to integer IDs BEFORE AlterField
+        migrations.RunPython(
+            convert_content_type_strings_to_ids,
+            noop,
+        ),
+        # DATA MIGRATION: Migrate mixin statistics to PageViewStatistics table
+        migrations.RunPython(
+            migrate_mixin_statistics,
+            noop,
+        ),
+        # Now safe to alter content_type from CharField to ForeignKey
         migrations.AlterField(
             model_name='pageviewsummary',
             name='content_type',
@@ -75,6 +163,7 @@ class Migration(migrations.Migration):
             name='page_id',
             field=models.PositiveIntegerField(db_index=True, verbose_name='Object ID'),
         ),
+        # Indexes for new models
         migrations.AddIndex(
             model_name='contenttyperegistry',
             index=models.Index(fields=['content_type', 'enabled'], name='djinsight_c_content_idx'),
