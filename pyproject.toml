@@ -74,6 +74,9 @@ test = [
     "factory-boy>=3.0",
     "coverage>=6.0",
 ]
+mcp = [
+    "mcp>=1.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/krystianmagdziarz/djinsight"
@@ -82,8 +85,10 @@ Repository = "https://github.com/krystianmagdziarz/djinsight.git"
 "Bug Tracker" = "https://github.com/krystianmagdziarz/djinsight/issues"
 Changelog = "https://github.com/krystianmagdziarz/djinsight/blob/main/CHANGELOG.md"
 
+[tool.setuptools.packages.find]
+include = ["djinsight*"]
+
 [tool.setuptools]
-packages = ["djinsight"]
 include-package-data = true
 
 [tool.setuptools.package-data]

@@ -46,7 +46,9 @@ def parse_user_agent_category(user_agent):
     if re.search(r"ipad|tablet|kindle|silk|playbook", ua):
         return "tablet"
 
-    if re.search(r"iphone|android.*mobile|windows phone|blackberry|opera mini|opera mobi", ua):
+    if re.search(
+        r"iphone|android.*mobile|windows phone|blackberry|opera mini|opera mobi", ua
+    ):
         return "mobile"
 
     if re.search(r"windows|macintosh|linux|x11", ua):
@@ -151,11 +153,17 @@ def parse_date_range(period, start_date=None, end_date=None):
     if period == "today":
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     elif period == "week":
-        start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = (now - timedelta(days=6)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
     elif period == "month":
-        start = (now - timedelta(days=29)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = (now - timedelta(days=29)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
     elif period == "year":
-        start = (now - timedelta(days=364)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = (now - timedelta(days=364)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
     elif period == "custom":
         if not start_date or not end_date:
             raise ValueError("start_date and end_date are required for custom period")
@@ -165,9 +173,15 @@ def parse_date_range(period, start_date=None, end_date=None):
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid date format. Use YYYY-MM-DD: {e}")
 
-        start = timezone.make_aware(start_dt.replace(hour=0, minute=0, second=0, microsecond=0))
-        end = timezone.make_aware(end_dt.replace(hour=23, minute=59, second=59, microsecond=999999))
+        start = timezone.make_aware(
+            start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        )
+        end = timezone.make_aware(
+            end_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+        )
     else:
-        raise ValueError(f"Invalid period: {period}. Must be one of: today, week, month, year, custom")
+        raise ValueError(
+            f"Invalid period: {period}. Must be one of: today, week, month, year, custom"
+        )
 
     return (start, end)

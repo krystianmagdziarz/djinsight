@@ -40,6 +40,10 @@ def migrate_mixin_statistics(apps, schema_editor):
     the Python model class may have already removed the mixin (code runs ahead of migrations).
     """
     connection = schema_editor.connection
+    # information_schema is PostgreSQL-only; skip on SQLite and other backends
+    if connection.vendor != 'postgresql':
+        return
+
     ContentType = apps.get_model('contenttypes', 'ContentType')
 
     with connection.cursor() as cursor:

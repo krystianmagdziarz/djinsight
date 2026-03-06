@@ -158,7 +158,9 @@ class ClassifyReferrerTest(TestCase):
         self.assertEqual(classify_referrer(""), "direct")
 
     def test_search_google(self):
-        self.assertEqual(classify_referrer("https://www.google.com/search?q=test"), "search")
+        self.assertEqual(
+            classify_referrer("https://www.google.com/search?q=test"), "search"
+        )
 
     def test_search_bing(self):
         self.assertEqual(classify_referrer("https://www.bing.com/search"), "search")
@@ -170,7 +172,9 @@ class ClassifyReferrerTest(TestCase):
         self.assertEqual(classify_referrer("https://www.ecosia.org/search"), "search")
 
     def test_social_facebook(self):
-        self.assertEqual(classify_referrer("https://www.facebook.com/post/123"), "social")
+        self.assertEqual(
+            classify_referrer("https://www.facebook.com/post/123"), "social"
+        )
 
     def test_social_twitter(self):
         self.assertEqual(classify_referrer("https://twitter.com/user/status"), "social")
@@ -182,7 +186,9 @@ class ClassifyReferrerTest(TestCase):
         self.assertEqual(classify_referrer("https://www.reddit.com/r/django"), "social")
 
     def test_social_youtube(self):
-        self.assertEqual(classify_referrer("https://www.youtube.com/watch?v=abc"), "social")
+        self.assertEqual(
+            classify_referrer("https://www.youtube.com/watch?v=abc"), "social"
+        )
 
     def test_social_linkedin(self):
         self.assertEqual(classify_referrer("https://www.linkedin.com/feed"), "social")

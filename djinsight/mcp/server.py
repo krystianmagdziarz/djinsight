@@ -1,310 +1,158 @@
+"""Native MCP server for djinsight using FastMCP."""
+
 import json
-import logging
-from typing import Any, Dict, Optional
+from typing import List, Optional
 
-from django.contrib.contenttypes.models import ContentType
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from mcp.server.fastmcp import FastMCP
 
-from djinsight.models import MCPAPIKey, PageViewStatistics, StatsQueryMixin
+mcp = FastMCP("djinsight", json_response=True)
 
-logger = logging.getLogger(__name__)
+# Import tool functions with _ prefix to avoid name collision
+from djinsight.mcp.tools.basic import get_page_stats as _get_page_stats  # noqa: E402
+from djinsight.mcp.tools.basic import get_top_pages as _get_top_pages
+from djinsight.mcp.tools.basic import list_tracked_models as _list_tracked_models
+from djinsight.mcp.tools.behavior import (  # noqa: E402
+    get_device_breakdown as _get_device_breakdown,
+)
+from djinsight.mcp.tools.behavior import get_hourly_pattern as _get_hourly_pattern
+from djinsight.mcp.tools.cross_model import (
+    compare_content_types as _compare_content_types,
+)
+from djinsight.mcp.tools.cross_model import (  # noqa: E402
+    get_site_overview as _get_site_overview,
+)
+from djinsight.mcp.tools.periods import compare_periods as _compare_periods
+from djinsight.mcp.tools.periods import (  # noqa: E402
+    get_period_stats as _get_period_stats,
+)
+from djinsight.mcp.tools.referrers import (  # noqa: E402
+    get_referrer_stats as _get_referrer_stats,
+)
+from djinsight.mcp.tools.referrers import get_traffic_sources as _get_traffic_sources
+from djinsight.mcp.tools.search import search_pages as _search_pages  # noqa: E402
+from djinsight.mcp.tools.trends import (  # noqa: E402
+    get_trending_pages as _get_trending_pages,
+)
 
 
-class MCPServer:
-    """
-    Model Context Protocol server for djinsight.
-    Exposes Django app statistics to AI agents through MCP.
-    """
+@mcp.tool()
+def get_page_stats(content_type: str, object_id: int) -> str:
+    """Get page view statistics for a specific object. Provide content_type as 'app_label.model' (e.g. 'blog.post') and the object's primary key."""
+    return json.dumps(_get_page_stats(content_type, object_id))
 
-    @staticmethod
-    def get_tools():
-        """Return available MCP tools."""
-        return [
-            {
-                "name": "get_page_stats",
-                "description": "Get page view statistics for a specific object",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "content_type": {
-                            "type": "string",
-                            "description": "Content type in format 'app_label.model' (e.g., 'blog.post')",
-                        },
-                        "object_id": {"type": "number", "description": "Object ID"},
-                    },
-                    "required": ["content_type", "object_id"],
-                },
-            },
-            {
-                "name": "get_top_pages",
-                "description": "Get top performing pages by views",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "content_type": {
-                            "type": "string",
-                            "description": "Content type in format 'app_label.model' (e.g., 'blog.Article')",
-                        },
-                        "limit": {
-                            "type": "number",
-                            "description": "Number of results to return (default: 10)",
-                        },
-                        "metric": {
-                            "type": "string",
-                            "enum": ["total_views", "unique_views"],
-                            "description": "Metric to sort by (default: total_views)",
-                        },
-                    },
-                    "required": ["content_type"],
-                },
-            },
-            {
-                "name": "get_period_stats",
-                "description": "Get statistics for a specific time period",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "content_type": {
-                            "type": "string",
-                            "description": "Content type in format 'app_label.model'",
-                        },
-                        "object_id": {"type": "number", "description": "Object ID"},
-                        "period": {
-                            "type": "string",
-                            "enum": ["today", "week", "month", "year"],
-                            "description": "Time period",
-                        },
-                    },
-                    "required": ["content_type", "object_id", "period"],
-                },
-            },
-            {
-                "name": "list_tracked_models",
-                "description": "List all content types that are being tracked",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {},
-                },
-            },
-        ]
 
-    @staticmethod
-    def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute an MCP tool."""
-        try:
-            if tool_name == "get_page_stats":
-                return MCPServer._get_page_stats(arguments)
-            elif tool_name == "get_top_pages":
-                return MCPServer._get_top_pages(arguments)
-            elif tool_name == "get_period_stats":
-                return MCPServer._get_period_stats(arguments)
-            elif tool_name == "list_tracked_models":
-                return MCPServer._list_tracked_models(arguments)
-            else:
-                return {"error": f"Unknown tool: {tool_name}"}
-        except Exception as e:
-            logger.error(f"Error executing tool {tool_name}: {e}")
-            return {"error": str(e)}
+@mcp.tool()
+def get_top_pages(
+    content_type: str, limit: int = 10, metric: str = "total_views"
+) -> str:
+    """Get top pages sorted by a metric. Returns pages ordered by total_views or unique_views for the given content type."""
+    return json.dumps(_get_top_pages(content_type, limit=limit, metric=metric))
 
-    @staticmethod
-    def _parse_content_type(content_type_str: str) -> Optional[ContentType]:
-        """Parse content type string 'app_label.model' into ContentType."""
-        try:
-            app_label, model = content_type_str.split(".")
-            return ContentType.objects.get(app_label=app_label, model=model.lower())
-        except (ValueError, ContentType.DoesNotExist) as e:
-            logger.error(f"Invalid content type: {content_type_str} - {e}")
-            return None
 
-    @staticmethod
-    def _get_page_stats(arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Get statistics for a specific page."""
-        content_type_str = arguments.get("content_type")
-        object_id = arguments.get("object_id")
+@mcp.tool()
+def list_tracked_models() -> str:
+    """List all content types currently being tracked by djinsight."""
+    return json.dumps(_list_tracked_models())
 
-        ct = MCPServer._parse_content_type(content_type_str)
-        if not ct:
-            return {"error": f"Invalid content type: {content_type_str}"}
 
-        # Try to get the actual object for its string representation
-        obj_str = None
-        try:
-            model_class = ct.model_class()
-            obj = model_class.objects.get(pk=object_id)
-            obj_str = str(obj)
-        except Exception:
-            obj_str = None
-
-        stats = PageViewStatistics.objects.filter(
-            content_type=ct, object_id=object_id
-        ).first()
-
-        if not stats:
-            return {
-                "content_type": content_type_str,
-                "object_id": object_id,
-                "object": obj_str,
-                "total_views": 0,
-                "unique_views": 0,
-                "first_viewed_at": None,
-                "last_viewed_at": None,
-            }
-
-        return {
-            "content_type": content_type_str,
-            "object_id": object_id,
-            "object": obj_str,
-            "total_views": stats.total_views,
-            "unique_views": stats.unique_views,
-            "first_viewed_at": stats.first_viewed_at.isoformat()
-            if stats.first_viewed_at
-            else None,
-            "last_viewed_at": stats.last_viewed_at.isoformat()
-            if stats.last_viewed_at
-            else None,
-        }
-
-    @staticmethod
-    def _get_top_pages(arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Get top performing pages."""
-        content_type_str = arguments.get("content_type")
-        limit = arguments.get("limit", 10)
-        metric = arguments.get("metric", "total_views")
-
-        ct = MCPServer._parse_content_type(content_type_str)
-        if not ct:
-            return {"error": f"Invalid content type: {content_type_str}"}
-
-        stats = PageViewStatistics.objects.filter(content_type=ct).order_by(
-            f"-{metric}"
-        )[:limit]
-
-        # Get all objects at once for efficiency
-        model_class = ct.model_class()
-        object_ids = [s.object_id for s in stats]
-        objects_dict = {}
-
-        try:
-            objects = model_class.objects.filter(pk__in=object_ids)
-            objects_dict = {obj.pk: str(obj) for obj in objects}
-        except Exception as e:
-            logger.warning(f"Could not fetch objects for top pages: {e}")
-
-        return {
-            "content_type": content_type_str,
-            "metric": metric,
-            "results": [
-                {
-                    "object_id": s.object_id,
-                    "object": objects_dict.get(s.object_id),
-                    "total_views": s.total_views,
-                    "unique_views": s.unique_views,
-                    "last_viewed_at": s.last_viewed_at.isoformat()
-                    if s.last_viewed_at
-                    else None,
-                }
-                for s in stats
-            ],
-        }
-
-    @staticmethod
-    def _get_period_stats(arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Get statistics for a time period."""
-        content_type_str = arguments.get("content_type")
-        object_id = arguments.get("object_id")
-        period = arguments.get("period", "week")
-
-        ct = MCPServer._parse_content_type(content_type_str)
-        if not ct:
-            return {"error": f"Invalid content type: {content_type_str}"}
-
-        try:
-            model_class = ct.model_class()
-            obj = model_class.objects.get(pk=object_id)
-            obj_str = str(obj)
-        except Exception as e:
-            return {"error": f"Object not found: {e}"}
-
-        period_map = {
-            "today": StatsQueryMixin.get_views_today,
-            "week": StatsQueryMixin.get_views_week,
-            "month": StatsQueryMixin.get_views_month,
-            "year": StatsQueryMixin.get_views_year,
-        }
-
-        handler = period_map.get(period)
-        if not handler:
-            return {"error": f"Invalid period: {period}"}
-
-        views = handler(obj, chart_data=True)
-
-        return {
-            "content_type": content_type_str,
-            "object_id": object_id,
-            "object": obj_str,
-            "period": period,
-            "data": views,
-        }
-
-    @staticmethod
-    def _list_tracked_models(arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """List all tracked content types."""
-        from djinsight.models import ContentTypeRegistry
-
-        registries = ContentTypeRegistry.objects.filter(enabled=True).select_related(
-            "content_type"
+@mcp.tool()
+def get_period_stats(
+    content_type: str,
+    object_id: int,
+    period: str = "week",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> str:
+    """Get view statistics for a specific time period. Supports 'today', 'week', 'month', 'year' or custom date ranges."""
+    return json.dumps(
+        _get_period_stats(
+            content_type,
+            object_id,
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
         )
-
-        return {
-            "tracked_models": [
-                {
-                    "app_label": r.content_type.app_label,
-                    "model": r.content_type.model,
-                    "content_type": f"{r.content_type.app_label}.{r.content_type.model}",
-                    "track_anonymous": r.track_anonymous,
-                    "track_authenticated": r.track_authenticated,
-                }
-                for r in registries
-            ]
-        }
+    )
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def mcp_endpoint(request):
-    """Main MCP endpoint."""
-    try:
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return JsonResponse(
-                {"error": "Missing or invalid Authorization header"}, status=401
-            )
+@mcp.tool()
+def compare_periods(content_type: str, object_id: int, period: str = "week") -> str:
+    """Compare current vs previous period view statistics, showing growth trends."""
+    return json.dumps(_compare_periods(content_type, object_id, period=period))
 
-        api_key = auth_header[7:]
-        if not MCPAPIKey.validate_key(api_key):
-            return JsonResponse({"error": "Invalid API key"}, status=403)
 
-        data = json.loads(request.body)
-        action = data.get("action")
+@mcp.tool()
+def get_trending_pages(
+    content_type: str, period: str = "week", direction: str = "up", limit: int = 10
+) -> str:
+    """Get trending pages with the biggest view changes. Use direction='up' for rising or 'down' for declining."""
+    return json.dumps(
+        _get_trending_pages(
+            content_type, period=period, direction=direction, limit=limit
+        )
+    )
 
-        if action == "list_tools":
-            tools = MCPServer.get_tools()
-            return JsonResponse({"tools": tools})
 
-        elif action == "execute_tool":
-            tool_name = data.get("tool_name")
-            arguments = data.get("arguments", {})
+@mcp.tool()
+def get_referrer_stats(
+    content_type: str,
+    object_id: Optional[int] = None,
+    period: str = "month",
+    limit: int = 20,
+) -> str:
+    """Get referrer statistics showing where traffic comes from. Optionally filter by specific object."""
+    return json.dumps(
+        _get_referrer_stats(
+            content_type, object_id=object_id, period=period, limit=limit
+        )
+    )
 
-            result = MCPServer.execute_tool(tool_name, arguments)
-            return JsonResponse(result)
 
-        else:
-            return JsonResponse({"error": "Invalid action"}, status=400)
+@mcp.tool()
+def get_traffic_sources(
+    content_type: str, object_id: Optional[int] = None, period: str = "month"
+) -> str:
+    """Get traffic sources grouped by category (search, social, direct, referral)."""
+    return json.dumps(
+        _get_traffic_sources(content_type, object_id=object_id, period=period)
+    )
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        logger.error(f"MCP endpoint error: {e}")
-        return JsonResponse({"error": "Internal server error"}, status=500)
+
+@mcp.tool()
+def get_device_breakdown(
+    content_type: str, object_id: Optional[int] = None, period: str = "month"
+) -> str:
+    """Get device type breakdown (desktop, mobile, tablet) for page views."""
+    return json.dumps(
+        _get_device_breakdown(content_type, object_id=object_id, period=period)
+    )
+
+
+@mcp.tool()
+def get_hourly_pattern(
+    content_type: str, object_id: Optional[int] = None, period: str = "week"
+) -> str:
+    """Get hourly traffic distribution showing when users visit most."""
+    return json.dumps(
+        _get_hourly_pattern(content_type, object_id=object_id, period=period)
+    )
+
+
+@mcp.tool()
+def get_site_overview() -> str:
+    """Get a high-level overview of all tracked content across the site."""
+    return json.dumps(_get_site_overview())
+
+
+@mcp.tool()
+def compare_content_types(content_types: List[str], period: str = "month") -> str:
+    """Compare statistics across multiple content types side by side."""
+    return json.dumps(_compare_content_types(content_types, period=period))
+
+
+@mcp.tool()
+def search_pages(
+    query: str, content_type: Optional[str] = None, limit: int = 20
+) -> str:
+    """Search tracked pages by name or title and return matching results with their view statistics."""
+    return json.dumps(_search_pages(query, content_type=content_type, limit=limit))
