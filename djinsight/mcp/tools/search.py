@@ -32,6 +32,7 @@ def search_pages(
         return {"error": "Query cannot be empty"}
 
     query = query.strip()
+    limit = min(max(1, limit), 100)
 
     # Determine which content types to search
     if content_type:
@@ -55,11 +56,17 @@ def search_pages(
 
         matched_objects = _search_model(model_class, query)
 
-        for obj in matched_objects:
-            stats = PageViewStatistics.objects.filter(
-                content_type=ct, object_id=obj.pk
-            ).first()
+        # Batch-load stats to avoid N+1 queries
+        obj_ids = [obj.pk for obj in matched_objects]
+        stats_map = {}
+        if obj_ids:
+            for s in PageViewStatistics.objects.filter(
+                content_type=ct, object_id__in=obj_ids
+            ):
+                stats_map[s.object_id] = s
 
+        for obj in matched_objects:
+            stats = stats_map.get(obj.pk)
             results.append(
                 {
                     "content_type": ct_str,

@@ -113,8 +113,7 @@ class GetReferrerStatsTest(ReferrerToolsTestBase):
 
     def test_invalid_content_type(self):
         result = get_referrer_stats("nonexistent.model")
-        self.assertEqual(result["total_referrals"], 0)
-        self.assertEqual(result["referrers"], [])
+        self.assertIn("error", result)
 
     def test_sorted_by_views_desc(self):
         result = get_referrer_stats(self.ct_str)
@@ -169,8 +168,7 @@ class GetTrafficSourcesTest(ReferrerToolsTestBase):
 
     def test_invalid_content_type(self):
         result = get_traffic_sources("nonexistent.model")
-        self.assertEqual(result["total_views"], 0)
-        self.assertEqual(result["sources"], [])
+        self.assertIn("error", result)
 
     def test_response_structure(self):
         result = get_traffic_sources(self.ct_str, object_id=1, period="month")

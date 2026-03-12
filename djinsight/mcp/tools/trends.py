@@ -18,6 +18,8 @@ def get_trending_pages(content_type, period="week", direction="up", limit=10):
     Returns:
         Dict with content_type, period, direction, and results list.
     """
+    limit = min(max(1, limit), 100)
+
     ct = parse_content_type_str(content_type)
     if ct is None:
         return {
@@ -29,7 +31,10 @@ def get_trending_pages(content_type, period="week", direction="up", limit=10):
         }
 
     # Step 1: Get current period date range
-    current_start, current_end = parse_date_range(period)
+    try:
+        current_start, current_end = parse_date_range(period)
+    except ValueError as e:
+        return {"error": str(e)}
 
     # Step 2: Calculate previous period (same duration, shifted back)
     duration = current_end - current_start

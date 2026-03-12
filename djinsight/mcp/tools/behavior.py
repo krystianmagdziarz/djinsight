@@ -4,6 +4,9 @@ import logging
 from collections import Counter
 from typing import Dict
 
+from django.db.models import Count
+from django.db.models.functions import ExtractHour
+
 from djinsight.mcp.utils import (
     parse_content_type_str,
     parse_date_range,
@@ -48,8 +51,8 @@ def get_device_breakdown(
     events = PageViewEvent.objects.filter(**filters)
 
     counter = Counter()
-    for event in events:
-        category = parse_user_agent_category(event.user_agent)
+    for ua in events.values_list("user_agent", flat=True).iterator():
+        category = parse_user_agent_category(ua)
         counter[category] += 1
 
     total_views = sum(counter.values())
@@ -105,9 +108,12 @@ def get_hourly_pattern(
 
     events = PageViewEvent.objects.filter(**filters)
 
-    counter = Counter()
-    for event in events:
-        counter[event.timestamp.hour] += 1
+    hourly_data = (
+        events.annotate(hour=ExtractHour("timestamp"))
+        .values("hour")
+        .annotate(count=Count("id"))
+    )
+    counter = {entry["hour"]: entry["count"] for entry in hourly_data}
 
     total_views = sum(counter.values())
 

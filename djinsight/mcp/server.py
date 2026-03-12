@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("djinsight", json_response=True)
+mcp = FastMCP("djinsight")
 
 # Import tool functions with _ prefix to avoid name collision
 from djinsight.mcp.tools.basic import get_page_stats as _get_page_stats  # noqa: E402

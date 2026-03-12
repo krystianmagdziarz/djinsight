@@ -33,7 +33,10 @@ def get_period_stats(
     if ct is None:
         return {"error": f"Invalid content type: {content_type}"}
 
-    start_dt, end_dt = parse_date_range(period, start_date, end_date)
+    try:
+        start_dt, end_dt = parse_date_range(period, start_date, end_date)
+    except ValueError as e:
+        return {"error": str(e)}
 
     events = PageViewEvent.objects.filter(
         content_type=ct,
@@ -88,7 +91,11 @@ def compare_periods(
     if ct is None:
         return {"error": f"Invalid content type: {content_type}"}
 
-    current_start, current_end = parse_date_range(period)
+    try:
+        current_start, current_end = parse_date_range(period)
+    except ValueError as e:
+        return {"error": str(e)}
+
     duration = current_end - current_start
 
     previous_end = current_start

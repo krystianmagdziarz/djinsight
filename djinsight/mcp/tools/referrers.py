@@ -24,17 +24,16 @@ def get_referrer_stats(content_type, object_id=None, period="month", limit=20):
         Dict with content_type, object_id, period, total_referrals,
         and referrers list (domain, views).
     """
+    limit = min(max(1, limit), 100)
+
     ct = parse_content_type_str(content_type)
     if ct is None:
-        return {
-            "content_type": content_type,
-            "object_id": object_id,
-            "period": period,
-            "total_referrals": 0,
-            "referrers": [],
-        }
+        return {"error": f"Invalid content type: {content_type}"}
 
-    start, end = parse_date_range(period)
+    try:
+        start, end = parse_date_range(period)
+    except ValueError as e:
+        return {"error": str(e)}
 
     filters = {
         "content_type": ct,
@@ -47,7 +46,7 @@ def get_referrer_stats(content_type, object_id=None, period="month", limit=20):
     events = PageViewEvent.objects.filter(**filters)
 
     domain_counter = Counter()
-    for referrer in events.values_list("referrer", flat=True):
+    for referrer in events.values_list("referrer", flat=True).iterator():
         domain = extract_domain(referrer)
         domain_counter[domain] += 1
 
@@ -80,15 +79,12 @@ def get_traffic_sources(content_type, object_id=None, period="month"):
     """
     ct = parse_content_type_str(content_type)
     if ct is None:
-        return {
-            "content_type": content_type,
-            "object_id": object_id,
-            "period": period,
-            "total_views": 0,
-            "sources": [],
-        }
+        return {"error": f"Invalid content type: {content_type}"}
 
-    start, end = parse_date_range(period)
+    try:
+        start, end = parse_date_range(period)
+    except ValueError as e:
+        return {"error": str(e)}
 
     filters = {
         "content_type": ct,
@@ -101,7 +97,7 @@ def get_traffic_sources(content_type, object_id=None, period="month"):
     events = PageViewEvent.objects.filter(**filters)
 
     source_counter = Counter()
-    for referrer in events.values_list("referrer", flat=True):
+    for referrer in events.values_list("referrer", flat=True).iterator():
         source = classify_referrer(referrer)
         source_counter[source] += 1
 

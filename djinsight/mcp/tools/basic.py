@@ -84,6 +84,12 @@ def get_top_pages(
     if not ct:
         return {"error": f"Invalid content type: {content_type}"}
 
+    ALLOWED_METRICS = {"total_views", "unique_views"}
+    if metric not in ALLOWED_METRICS:
+        return {"error": f"Invalid metric: {metric}. Must be one of: {', '.join(sorted(ALLOWED_METRICS))}"}
+
+    limit = min(max(1, limit), 100)
+
     stats = PageViewStatistics.objects.filter(content_type=ct).order_by(f"-{metric}")[
         :limit
     ]
