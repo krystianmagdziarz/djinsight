@@ -60,8 +60,6 @@ class DjInsightSettings:
         "MCP_ENABLED": True,
         "MCP_ENDPOINT_URL": "/djinsight/mcp/",
         "MCP_API_KEY_HEADER": "Authorization",
-        "MCP_RATE_LIMIT": 100,
-        "MCP_RATE_LIMIT_PERIOD": 60,
     }
 
     def __getattr__(self, name: str) -> Any:

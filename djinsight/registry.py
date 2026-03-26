@@ -1,5 +1,6 @@
 from typing import Dict, Type, Union
 
+from djinsight.conf import djinsight_settings
 from djinsight.providers.base import AsyncBaseProvider, BaseProvider
 
 
@@ -36,8 +37,6 @@ class ProviderRegistry:
             name: Provider name (optional, uses default if not specified)
             use_async: If True, returns async provider variant
         """
-        from djinsight.conf import djinsight_settings
-
         if name:
             if use_async and name in cls._async_providers:
                 return cls._async_providers[name]()

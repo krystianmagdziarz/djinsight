@@ -239,7 +239,7 @@ class Command(BaseCommand):
                 model_class = content_type.model_class()
                 if model_class:
                     tracked_models.add(model_class)
-            except:
+            except Exception:
                 pass
 
         # Also register models that have PageViewStatistics records
@@ -249,7 +249,7 @@ class Command(BaseCommand):
                 model_class = content_type.model_class()
                 if model_class:
                     tracked_models.add(model_class)
-            except:
+            except Exception:
                 pass
 
         for model in tracked_models:

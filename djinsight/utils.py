@@ -1,3 +1,6 @@
+from djinsight.conf import djinsight_settings
+
+
 def get_client_ip(request) -> str:
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
@@ -54,8 +57,6 @@ def format_view_count(count) -> str:
 
 
 def check_stats_permission(request) -> bool:
-    from djinsight.conf import djinsight_settings
-
     if djinsight_settings.ADMIN_ONLY and request:
         user = getattr(request, "user", None)
         if user:

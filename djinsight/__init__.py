@@ -6,5 +6,3 @@ __version__ = "0.3.7"
 __author__ = "MDigital"
 __email__ = "kontakt@mdigital.com.pl"
 __license__ = "MIT"
-
-default_app_config = "djinsight.apps.DjInsightConfig"
