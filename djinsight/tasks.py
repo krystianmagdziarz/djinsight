@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 redis_provider = RedisProvider()
 redis_client = redis_provider.client
-REDIS_KEY_PREFIX = djinsight_settings.REDIS_KEY_PREFIX
+REDIS_KEY_PREFIX = redis_provider.key_prefix
 
 # Try to import Celery - if not available, tasks will be regular functions
 try:
@@ -149,11 +149,11 @@ def process_page_views(
 
     try:
         # Get all keys matching the page view pattern, excluding counters and sessions
-        pattern = f"{REDIS_KEY_PREFIX}*"
+        pattern = f"{REDIS_KEY_PREFIX}:*"
         exclude_patterns = [
-            f"{REDIS_KEY_PREFIX}counter:",
-            f"{REDIS_KEY_PREFIX}unique_counter:",
-            f"{REDIS_KEY_PREFIX}session:",
+            f"{REDIS_KEY_PREFIX}:counter:",
+            f"{REDIS_KEY_PREFIX}:unique_counter:",
+            f"{REDIS_KEY_PREFIX}:session:",
         ]
 
         # Get all keys
@@ -406,7 +406,7 @@ def cleanup_old_data(days_to_keep=None):
     if redis_client:
         try:
             # Clean up session keys older than days_to_keep
-            session_pattern = f"{REDIS_KEY_PREFIX}session:*"
+            session_pattern = f"{REDIS_KEY_PREFIX}:session:*"
             session_keys = redis_client.keys(session_pattern)
 
             # Check TTL and delete expired keys manually
