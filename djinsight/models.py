@@ -1,10 +1,11 @@
+import secrets
 from datetime import timedelta
 from typing import Optional
 
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -61,7 +62,6 @@ class PageViewStatistics(models.Model):
         verbose_name_plural = _("Page View Statistics")
         unique_together = [('content_type', 'object_id')]
         indexes = [
-            models.Index(fields=['content_type', 'object_id']),
             models.Index(fields=['content_type', 'total_views']),
             models.Index(fields=['content_type', 'unique_views']),
             models.Index(fields=['last_viewed_at']),
@@ -86,17 +86,18 @@ class PageViewStatistics(models.Model):
         return cls.objects.filter(content_type=content_type, object_id=obj.pk).first()
 
     def increment_view_count(self, unique: bool = False):
-        self.total_views += 1
-        if unique:
-            self.unique_views += 1
-
         current_time = timezone.now()
-        self.last_viewed_at = current_time
-
+        updates = {
+            "total_views": F("total_views") + 1,
+            "last_viewed_at": current_time,
+        }
+        if unique:
+            updates["unique_views"] = F("unique_views") + 1
         if not self.first_viewed_at:
-            self.first_viewed_at = current_time
+            updates["first_viewed_at"] = current_time
 
-        self.save(update_fields=['total_views', 'unique_views', 'last_viewed_at', 'first_viewed_at', 'updated_at'])
+        PageViewStatistics.objects.filter(pk=self.pk).update(**updates)
+        self.refresh_from_db()
 
     def get_views_for_period(self, start_date, end_date, unique: bool = False):
         queryset = PageViewEvent.objects.filter(
@@ -343,7 +344,6 @@ class MCPAPIKey(models.Model):
 
     @classmethod
     def generate_key(cls):
-        import secrets
         return secrets.token_urlsafe(48)
 
     @classmethod
