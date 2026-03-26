@@ -23,6 +23,22 @@ DJINSIGHT = {
     "USE_CELERY": False,
 }
 
+MIDDLEWARE = [
+    "django.contrib.sessions.middleware.SessionMiddleware",
+]
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+            ],
+        },
+    },
+]
+
 ROOT_URLCONF = "tests.urls"
 TIME_ZONE = "UTC"
 USE_TZ = True
