@@ -15,7 +15,7 @@ class DjInsightSettings:
         "REDIS_PASSWORD": None,
         "REDIS_TIMEOUT": 5,
         "REDIS_CONNECT_TIMEOUT": 5,
-        "REDIS_KEY_PREFIX": "djinsight:pageview:",
+        "REDIS_KEY_PREFIX": "djinsight:pageview",
         "REDIS_EXPIRATION": 60 * 60 * 24 * 7,
         "TRACK_MODELS": [],
         "TRACK_ANONYMOUS": True,
@@ -127,6 +127,17 @@ class DjInsightSettings:
             return False
 
         return self.TRACK_AUTHENTICATED
+
+    @property
+    def redis_key_prefix(self) -> str:
+        prefix = self.REDIS_KEY_PREFIX
+        prefix = prefix.strip().rstrip(':')
+        if not prefix:
+            raise ValueError(
+                "REDIS_KEY_PREFIX cannot be empty. "
+                "Please set a valid prefix to avoid Redis key collisions."
+            )
+        return prefix
 
 
 djinsight_settings = DjInsightSettings()

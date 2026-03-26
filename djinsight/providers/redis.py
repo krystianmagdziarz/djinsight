@@ -17,7 +17,7 @@ class RedisProvider(BaseProvider):
 
     def __init__(self):
         self.client = self._get_redis_client()
-        self.key_prefix = djinsight_settings.REDIS_KEY_PREFIX
+        self.key_prefix = djinsight_settings.redis_key_prefix
 
     def _get_redis_client(self):
         try:
@@ -59,16 +59,16 @@ class RedisProvider(BaseProvider):
             expiration = djinsight_settings.REDIS_EXPIRATION
 
             pipe = self.client.pipeline()
-            pipe.setex(f"{self.key_prefix}{view_id}", expiration, json.dumps(event_data))
-            pipe.incr(f"{self.key_prefix}counter:{content_type}:{object_id}")
+            pipe.setex(f"{self.key_prefix}:{view_id}", expiration, json.dumps(event_data))
+            pipe.incr(f"{self.key_prefix}:counter:{content_type}:{object_id}")
 
             # Always mark session as viewed to prevent counting same session as unique again
-            session_key_redis = f"{self.key_prefix}session:{session_key}:page:{content_type}:{object_id}"
+            session_key_redis = f"{self.key_prefix}:session:{session_key}:page:{content_type}:{object_id}"
             pipe.setex(session_key_redis, expiration, 1)
 
             # Only increment unique counter if this is first view from this session
             if is_unique:
-                pipe.incr(f"{self.key_prefix}unique_counter:{content_type}:{object_id}")
+                pipe.incr(f"{self.key_prefix}:unique_counter:{content_type}:{object_id}")
 
             pipe.execute()
 
@@ -83,8 +83,8 @@ class RedisProvider(BaseProvider):
             return {'total_views': 0, 'unique_views': 0}
 
         try:
-            total_views = self.client.get(f"{self.key_prefix}counter:{content_type}:{object_id}")
-            unique_views = self.client.get(f"{self.key_prefix}unique_counter:{content_type}:{object_id}")
+            total_views = self.client.get(f"{self.key_prefix}:counter:{content_type}:{object_id}")
+            unique_views = self.client.get(f"{self.key_prefix}:unique_counter:{content_type}:{object_id}")
 
             return {
                 'total_views': int(total_views) if total_views else 0,
@@ -99,7 +99,7 @@ class RedisProvider(BaseProvider):
             return 0
 
         try:
-            return self.client.incr(f"{self.key_prefix}{key}", amount)
+            return self.client.incr(f"{self.key_prefix}:{key}", amount)
         except Exception as e:
             logger.error(f"Error incrementing counter: {e}")
             return 0
@@ -109,7 +109,7 @@ class RedisProvider(BaseProvider):
             return False
 
         try:
-            key = f"{self.key_prefix}session:{session_key}:page:{content_type}:{object_id}"
+            key = f"{self.key_prefix}:session:{session_key}:page:{content_type}:{object_id}"
             return not self.client.exists(key)
         except Exception as e:
             logger.error(f"Error checking unique view: {e}")
@@ -120,7 +120,7 @@ class RedisProvider(BaseProvider):
             return
 
         try:
-            key = f"{self.key_prefix}session:{session_key}:page:{content_type}:{object_id}"
+            key = f"{self.key_prefix}:session:{session_key}:page:{content_type}:{object_id}"
             self.client.setex(key, ttl, 1)
         except Exception as e:
             logger.error(f"Error marking viewed: {e}")
@@ -131,7 +131,7 @@ class AsyncRedisProvider(AsyncBaseProvider):
 
     def __init__(self):
         self.client = None
-        self.key_prefix = djinsight_settings.REDIS_KEY_PREFIX
+        self.key_prefix = djinsight_settings.redis_key_prefix
         self._initialized = False
 
     async def _get_redis_client(self):
@@ -176,16 +176,16 @@ class AsyncRedisProvider(AsyncBaseProvider):
             expiration = djinsight_settings.REDIS_EXPIRATION
 
             pipe = client.pipeline()
-            pipe.setex(f"{self.key_prefix}{view_id}", expiration, json.dumps(event_data))
-            pipe.incr(f"{self.key_prefix}counter:{content_type}:{object_id}")
+            pipe.setex(f"{self.key_prefix}:{view_id}", expiration, json.dumps(event_data))
+            pipe.incr(f"{self.key_prefix}:counter:{content_type}:{object_id}")
 
             # Always mark session as viewed to prevent counting same session as unique again
-            session_key_redis = f"{self.key_prefix}session:{session_key}:page:{content_type}:{object_id}"
+            session_key_redis = f"{self.key_prefix}:session:{session_key}:page:{content_type}:{object_id}"
             pipe.setex(session_key_redis, expiration, 1)
 
             # Only increment unique counter if this is first view from this session
             if is_unique:
-                pipe.incr(f"{self.key_prefix}unique_counter:{content_type}:{object_id}")
+                pipe.incr(f"{self.key_prefix}:unique_counter:{content_type}:{object_id}")
 
             await pipe.execute()
 
@@ -201,8 +201,8 @@ class AsyncRedisProvider(AsyncBaseProvider):
             return {'total_views': 0, 'unique_views': 0}
 
         try:
-            total_views = await client.get(f"{self.key_prefix}counter:{content_type}:{object_id}")
-            unique_views = await client.get(f"{self.key_prefix}unique_counter:{content_type}:{object_id}")
+            total_views = await client.get(f"{self.key_prefix}:counter:{content_type}:{object_id}")
+            unique_views = await client.get(f"{self.key_prefix}:unique_counter:{content_type}:{object_id}")
 
             return {
                 'total_views': int(total_views) if total_views else 0,
@@ -218,7 +218,7 @@ class AsyncRedisProvider(AsyncBaseProvider):
             return 0
 
         try:
-            return await client.incr(f"{self.key_prefix}{key}", amount)
+            return await client.incr(f"{self.key_prefix}:{key}", amount)
         except Exception as e:
             logger.error(f"Error incrementing counter: {e}")
             return 0
@@ -229,7 +229,7 @@ class AsyncRedisProvider(AsyncBaseProvider):
             return False
 
         try:
-            key = f"{self.key_prefix}session:{session_key}:page:{content_type}:{object_id}"
+            key = f"{self.key_prefix}:session:{session_key}:page:{content_type}:{object_id}"
             return not await client.exists(key)
         except Exception as e:
             logger.error(f"Error checking unique view: {e}")
@@ -241,7 +241,7 @@ class AsyncRedisProvider(AsyncBaseProvider):
             return
 
         try:
-            key = f"{self.key_prefix}session:{session_key}:page:{content_type}:{object_id}"
+            key = f"{self.key_prefix}:session:{session_key}:page:{content_type}:{object_id}"
             await client.setex(key, ttl, 1)
         except Exception as e:
             logger.error(f"Error marking viewed: {e}")
