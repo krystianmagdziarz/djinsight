@@ -72,7 +72,10 @@ def compare_content_types(content_types: List[str], period: str = "month") -> Di
         Each entry contains content_type, total_views, unique_views.
         Invalid content types are skipped.
     """
-    start, end = parse_date_range(period)
+    try:
+        start, end = parse_date_range(period)
+    except ValueError as e:
+        return {"error": str(e)}
 
     results = []
     for ct_str in content_types:
