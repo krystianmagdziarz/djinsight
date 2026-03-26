@@ -13,7 +13,8 @@ from django.conf import settings
 
 from djinsight.conf import djinsight_settings
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_project.settings")
+# Note: DJANGO_SETTINGS_MODULE must be set by the host project before this module is imported.
+# Do NOT set a default here — this is a reusable package.
 
 app = Celery("djinsight")
 
