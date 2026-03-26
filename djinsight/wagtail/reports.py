@@ -1,68 +1,154 @@
-"""Analytics report views for Wagtail admin."""
+"""Analytics dashboard view for Wagtail admin."""
 
-from datetime import timedelta
+import json
+from collections import Counter
+from datetime import datetime, timedelta
 
+from django import forms
+from django.contrib.auth.views import redirect_to_login
 from django.contrib.contenttypes.models import ContentType
+from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.views.generic import TemplateView
 
-from wagtail.admin.views.reports import ReportView
+from wagtail.admin.admin_url_finder import AdminURLFinder
+from wagtail.admin.views.generic.base import WagtailAdminTemplateMixin
+from wagtail.admin.widgets.datetime import AdminDateInput
 
-from djinsight.mcp.tools.behavior import get_device_breakdown
-from djinsight.mcp.tools.referrers import get_traffic_sources
 from djinsight.models import PageViewEvent, PageViewStatistics
 
 
-class PageViewsReportView(ReportView):
-    """Full page views report with sorting, filtering, and CSV/XLSX export."""
+class AnalyticsFilterForm(forms.Form):
+    """Filter form with Wagtail date picker widgets."""
 
-    page_title = _("Page Views")
-    header_icon = "doc-empty"
-    index_url_name = "djinsight_page_views_report"
-    index_results_url_name = "djinsight_page_views_report_results"
+    period = forms.ChoiceField(
+        choices=[
+            ("all", _("All time")),
+            ("today", _("Today")),
+            ("week", _("This week")),
+            ("month", _("This month")),
+            ("year", _("This year")),
+        ],
+        required=False,
+        initial="all",
+    )
+    date_from = forms.DateField(
+        required=False,
+        widget=AdminDateInput(attrs={"placeholder": _("From")}),
+        label=_("From"),
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=AdminDateInput(attrs={"placeholder": _("To")}),
+        label=_("To"),
+    )
+    content_type = forms.ChoiceField(
+        required=False,
+        label=_("Content type"),
+    )
 
-    list_export = [
-        "title",
-        "content_type",
-        "total_views",
-        "unique_views",
-        "last_viewed_at",
-    ]
-    export_headings = {
-        "title": _("Title"),
-        "content_type": _("Content Type"),
-        "total_views": _("Total Views"),
-        "unique_views": _("Unique Views"),
-        "last_viewed_at": _("Last Viewed"),
-    }
+    def __init__(self, *args, content_type_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        ct_choices = [("", _("All"))]
+        if content_type_choices:
+            ct_choices += [(ct, ct) for ct in content_type_choices]
+        self.fields["content_type"].choices = ct_choices
 
-    template_name = "djinsight/wagtail/reports/page_views.html"
-    results_template_name = "djinsight/wagtail/reports/page_views_results.html"
+PAGE_SIZE = 25
 
-    def get_queryset(self):
-        qs = (
-            PageViewStatistics.objects.select_related("content_type")
-            .order_by("-total_views")
-        )
+PERIOD_PRESETS = {
+    "today": timedelta(days=1),
+    "week": timedelta(days=7),
+    "month": timedelta(days=30),
+    "year": timedelta(days=365),
+}
 
-        # Period filtering
+
+class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
+    """Combined analytics dashboard: page views + traffic sources + devices."""
+
+    page_title = _("Analytics")
+    header_icon = "view"
+    template_name = "djinsight/wagtail/reports/analytics_dashboard.html"
+
+    def get_breadcrumbs_items(self):
+        return self.breadcrumbs_items + [
+            {"url": "", "label": _("Analytics")},
+        ]
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return redirect_to_login(request.get_full_path())
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_date_range(self):
+        """Parse date range from request: preset or custom date_from/date_to."""
         period = self.request.GET.get("period", "all")
-        if period != "all":
-            period_map = {
-                "today": timedelta(days=1),
-                "week": timedelta(days=7),
-                "month": timedelta(days=30),
-                "year": timedelta(days=365),
-            }
-            delta = period_map.get(period)
-            if delta:
-                cutoff = timezone.now() - delta
-                qs = qs.filter(last_viewed_at__gte=cutoff)
+        date_from = self.request.GET.get("date_from", "")
+        date_to = self.request.GET.get("date_to", "")
 
-        # Content type filtering
-        ct_filter = self.request.GET.get("content_type")
+        now = timezone.now()
+
+        # Custom date range takes priority
+        if date_from or date_to:
+            start = None
+            end = None
+            if date_from:
+                try:
+                    start = timezone.make_aware(datetime.strptime(date_from, "%Y-%m-%d"))
+                except ValueError:
+                    pass
+            if date_to:
+                try:
+                    end = timezone.make_aware(
+                        datetime.strptime(date_to, "%Y-%m-%d").replace(
+                            hour=23, minute=59, second=59
+                        )
+                    )
+                except ValueError:
+                    pass
+            return start, end, "custom"
+
+        if period != "all" and period in PERIOD_PRESETS:
+            return now - PERIOD_PRESETS[period], now, period
+
+        return None, None, "all"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Available content types for filter
+        tracked_cts = (
+            PageViewStatistics.objects.values("content_type__app_label", "content_type__model")
+            .distinct()
+            .order_by("content_type__app_label", "content_type__model")
+        )
+        ct_choices = [
+            f"{row['content_type__app_label']}.{row['content_type__model']}"
+            for row in tracked_cts
+        ]
+
+        # Filter form with Wagtail date pickers
+        form = AnalyticsFilterForm(
+            self.request.GET or None,
+            content_type_choices=ct_choices,
+        )
+        context["filter_form"] = form
+
+        date_from, date_to, period = self._get_date_range()
+        ct_filter = self.request.GET.get("content_type", "")
+
+        # --- Page Views table ---
+        qs = PageViewStatistics.objects.select_related("content_type").order_by("-total_views")
+
+        if date_from:
+            qs = qs.filter(last_viewed_at__gte=date_from)
+        if date_to:
+            qs = qs.filter(last_viewed_at__lte=date_to)
+
         if ct_filter:
             try:
                 app_label, model = ct_filter.split(".")
@@ -71,13 +157,6 @@ class PageViewsReportView(ReportView):
             except (ValueError, ContentType.DoesNotExist):
                 pass
 
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Aggregate stats
-        qs = self.get_queryset()
         aggregates = qs.aggregate(
             total_views=Sum("total_views"),
             total_unique=Sum("unique_views"),
@@ -86,128 +165,163 @@ class PageViewsReportView(ReportView):
         context["total_unique"] = aggregates["total_unique"] or 0
         context["total_objects"] = qs.count()
 
-        # Available content types for filter dropdown
-        tracked_cts = (
-            PageViewStatistics.objects.values(
-                "content_type__app_label", "content_type__model"
+        # Pagination
+        paginator = Paginator(qs, PAGE_SIZE)
+        page_number = self.request.GET.get("page", 1)
+        page_obj = paginator.get_page(page_number)
+        context["results_data"] = self._hydrate_results(page_obj)
+        context["page_obj"] = page_obj
+        context["paginator"] = paginator
+
+        context["current_period"] = period
+
+        # --- Event filters (shared by chart, traffic sources, devices) ---
+        event_filters = {}
+        if date_from:
+            event_filters["timestamp__gte"] = date_from
+        if date_to:
+            event_filters["timestamp__lte"] = date_to
+        if ct_filter:
+            try:
+                app_label, model = ct_filter.split(".")
+                ct = ContentType.objects.get_by_natural_key(app_label, model)
+                event_filters["content_type"] = ct
+            except (ValueError, ContentType.DoesNotExist):
+                pass
+
+        # --- Daily chart data (views + unique) ---
+        daily_events = (
+            PageViewEvent.objects.filter(**event_filters)
+            .annotate(day=TruncDate("timestamp"))
+            .values("day")
+            .annotate(
+                total=Count("id"),
+                unique=Count("session_key", distinct=True),
             )
-            .distinct()
-            .order_by("content_type__app_label", "content_type__model")
+            .order_by("day")
         )
-        context["content_types"] = [
-            f"{row['content_type__app_label']}.{row['content_type__model']}"
-            for row in tracked_cts
+        views_by_day = {entry["day"]: entry for entry in daily_events}
+
+        # Build complete series filling gaps with 0
+
+        if date_from and date_to:
+            start_date = date_from.date() if hasattr(date_from, "date") else date_from
+            end_date = date_to.date() if hasattr(date_to, "date") else date_to
+        elif date_from:
+            start_date = date_from.date() if hasattr(date_from, "date") else date_from
+            end_date = timezone.now().date()
+        elif views_by_day:
+            start_date = min(views_by_day.keys())
+            end_date = max(views_by_day.keys())
+        else:
+            start_date = (timezone.now() - timedelta(days=30)).date()
+            end_date = timezone.now().date()
+
+        chart_labels = []
+        chart_views = []
+        chart_unique = []
+        current = start_date
+        while current <= end_date:
+            chart_labels.append(current.strftime("%Y-%m-%d"))
+            entry = views_by_day.get(current, {})
+            chart_views.append(entry.get("total", 0))
+            chart_unique.append(entry.get("unique", 0))
+            current += timedelta(days=1)
+
+        context["chart_labels_json"] = json.dumps(chart_labels)
+        context["chart_views_json"] = json.dumps(chart_views)
+        context["chart_unique_json"] = json.dumps(chart_unique)
+
+        # Build query string for pagination links (without page param)
+        qs_params = self.request.GET.copy()
+        qs_params.pop("page", None)
+        context["pagination_qs"] = qs_params.urlencode()
+
+        # --- Traffic Sources & Devices ---
+        events = PageViewEvent.objects.filter(**event_filters)
+
+        # Traffic sources
+        source_counter = Counter()
+        for referrer in events.values_list("referrer", flat=True).iterator():
+            source_counter[self._classify_referrer(referrer)] += 1
+
+        source_total = sum(source_counter.values())
+        context["sources"] = [
+            {
+                "source": name,
+                "views": views,
+                "percentage": round(views / source_total * 100, 1) if source_total else 0,
+            }
+            for name, views in source_counter.most_common()
         ]
+        context["source_total"] = source_total
 
-        context["current_period"] = self.request.GET.get("period", "all")
-        context["current_content_type"] = self.request.GET.get("content_type", "")
+        # Device breakdown
+        device_counter = Counter()
+        for ua in events.values_list("user_agent", flat=True).iterator():
+            device_counter[self._classify_device(ua)] += 1
 
-        # Hydrate results with object titles
-        context["results_data"] = self._hydrate_results(context["object_list"])
+        device_total = sum(device_counter.values())
+        context["devices"] = [
+            {
+                "device": name,
+                "views": views,
+                "percentage": round(views / device_total * 100, 1) if device_total else 0,
+            }
+            for name, views in device_counter.most_common()
+        ]
+        context["device_total"] = device_total
+
         return context
 
     def _hydrate_results(self, stats_qs):
-        """Add object titles and edit URLs to stats queryset."""
         results = []
         for stat in stats_qs:
             ct = stat.content_type
             model_class = ct.model_class()
             title = f"{ct.app_label}.{ct.model} #{stat.object_id}"
             edit_url = None
-            obj_type = f"{ct.app_label}.{ct.model}"
 
             if model_class:
                 try:
                     obj = model_class.objects.get(pk=stat.object_id)
                     title = str(obj)
-                    if hasattr(obj, "id"):
-                        try:
-                            from wagtail.admin.urls import get_edit_url
-                            edit_url = get_edit_url(obj)
-                        except Exception:
-                            pass
+                    edit_url = AdminURLFinder().get_edit_url(obj)
                 except model_class.DoesNotExist:
                     title += " (deleted)"
 
             results.append({
                 "title": title,
-                "content_type": obj_type,
+                "content_type": f"{ct.app_label}.{ct.model}",
                 "total_views": stat.total_views,
                 "unique_views": stat.unique_views,
                 "last_viewed_at": stat.last_viewed_at,
                 "edit_url": edit_url,
-                "stat": stat,
             })
         return results
 
+    @staticmethod
+    def _classify_referrer(referrer):
+        if not referrer:
+            return "direct"
+        referrer = referrer.lower()
+        search = ["google.", "bing.", "yahoo.", "duckduckgo.", "baidu.", "yandex."]
+        social = ["facebook.", "twitter.", "t.co", "instagram.", "linkedin.", "reddit.", "youtube."]
+        if any(s in referrer for s in search):
+            return "search"
+        if any(s in referrer for s in social):
+            return "social"
+        return "referral"
 
-class TrafficSourcesReportView(ReportView):
-    """Traffic sources breakdown report."""
-
-    page_title = _("Traffic Sources")
-    header_icon = "globe"
-    index_url_name = "djinsight_traffic_sources_report"
-    index_results_url_name = "djinsight_traffic_sources_report_results"
-    template_name = "djinsight/wagtail/reports/traffic_sources.html"
-
-    def get_queryset(self):
-        return PageViewEvent.objects.none()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        period = self.request.GET.get("period", "month")
-
-        # Get all tracked content types
-        tracked_cts = (
-            PageViewStatistics.objects.values(
-                "content_type__app_label", "content_type__model"
-            ).distinct()
-        )
-
-        # Aggregate traffic sources across all content types
-        source_totals = {"direct": 0, "search": 0, "social": 0, "referral": 0}
-        for row in tracked_cts:
-            ct_str = f"{row['content_type__app_label']}.{row['content_type__model']}"
-            result = get_traffic_sources(ct_str, period=period)
-            if "error" not in result:
-                for source in result.get("sources", []):
-                    name = source["source"]
-                    if name in source_totals:
-                        source_totals[name] += source["views"]
-
-        total = sum(source_totals.values())
-        sources = []
-        for name, views in sorted(source_totals.items(), key=lambda x: -x[1]):
-            sources.append({
-                "source": name,
-                "views": views,
-                "percentage": round(views / total * 100, 1) if total else 0,
-            })
-
-        context["sources"] = sources
-        context["total_views"] = total
-        context["current_period"] = period
-
-        # Device breakdown
-        device_totals = {}
-        for row in tracked_cts:
-            ct_str = f"{row['content_type__app_label']}.{row['content_type__model']}"
-            result = get_device_breakdown(ct_str, period=period)
-            if "error" not in result:
-                for device in result.get("devices", []):
-                    name = device["device"]
-                    device_totals[name] = device_totals.get(name, 0) + device["views"]
-
-        device_total = sum(device_totals.values())
-        devices = []
-        for name, views in sorted(device_totals.items(), key=lambda x: -x[1]):
-            devices.append({
-                "device": name,
-                "views": views,
-                "percentage": round(views / device_total * 100, 1) if device_total else 0,
-            })
-
-        context["devices"] = devices
-        context["device_total"] = device_total
-
-        return context
+    @staticmethod
+    def _classify_device(user_agent):
+        if not user_agent:
+            return "unknown"
+        ua = user_agent.lower()
+        if any(bot in ua for bot in ["bot", "spider", "crawler", "slurp"]):
+            return "bot"
+        if any(m in ua for m in ["iphone", "android", "mobile"]):
+            return "mobile"
+        if any(t in ua for t in ["ipad", "tablet"]):
+            return "tablet"
+        return "desktop"

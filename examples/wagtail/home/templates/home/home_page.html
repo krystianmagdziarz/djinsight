@@ -1,0 +1,34 @@
+{% load djinsight_tags wagtailcore_tags %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ page.title }}</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .stats { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    {% track obj=page %}
+    <h1>{{ page.title }}</h1>
+    <div>{{ page.body|safe }}</div>
+
+    <div class="stats">
+        <p>Views: {% stats obj=page %}</p>
+        <p>Unique: {% stats obj=page metric="unique_views" %}</p>
+    </div>
+
+    {% if page.get_children %}
+        <h2>Child pages</h2>
+        <ul>
+        {% for child in page.get_children.live %}
+            <li>
+                <a href="{% pageurl child %}">{{ child.title }}</a>
+                — Views: {% stats obj=child %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

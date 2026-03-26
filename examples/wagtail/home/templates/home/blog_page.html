@@ -1,0 +1,28 @@
+{% load djinsight_tags wagtailcore_tags %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ page.title }}</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .content { line-height: 1.6; }
+        .stats { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        a { color: #007bff; }
+    </style>
+</head>
+<body>
+    {% track obj=page %}
+    <p><a href="{% pageurl page.get_parent %}">&larr; Back</a></p>
+
+    <h1>{{ page.title }}</h1>
+    <div class="content">{{ page.body|safe }}</div>
+
+    <div class="stats">
+        <h3>Stats</h3>
+        <p>Total: {% stats obj=page %} | Unique: {% stats obj=page metric="unique_views" %}</p>
+        <p>This week: {% stats obj=page period="week" %}</p>
+        {% stats obj=page period="week" output="chart" %}
+    </div>
+</body>
+</html>

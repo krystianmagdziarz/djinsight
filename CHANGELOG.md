@@ -1,3 +1,38 @@
+## [0.4.1] - 2026-03-26
+
+### Fixed
+
+- **Redis key prefix** - Normalize prefix format (merged PR #3)
+- **Analytics chart** - Fix Chart.js not rendering due to script execution order
+
+## [0.4.0] - 2026-03-26
+
+### Added
+
+- **Wagtail integration** (`djinsight.wagtail`) - Analytics dashboard in Wagtail admin
+  - Combined page views, traffic sources, and device breakdown on a single page
+  - Daily views chart with Views and Unique series (Chart.js)
+  - Filterable by period (presets + custom date range with Wagtail date pickers), content type
+  - Paginated page views table with links to Wagtail edit pages
+  - Registered as top-level "Analytics" menu item
+  - Install with `pip install djinsight[wagtail]`
+
+- **Wagtail example project** (`examples/wagtail/`) with demo data command
+
+### Changed
+
+- **Moved example project** from `example/` to `examples/django/`
+- **Dependencies** - `redis`, `celery`, `django-redis` moved from required to optional extras (`[redis]`, `[celery]`)
+- **Removed `django-environ`** from dependencies (not used)
+
+### Fixed
+
+- **Atomic counter updates** - Use `F()` expressions instead of in-memory increment to prevent race conditions
+- **XSS hardening** - Escape `<`, `>`, `&` in JSON output, sanitize chart colors, whitelist chart types
+- **Redis tasks** - Lazy Redis init, `SCAN` instead of `KEYS`, batch cleanup for old events
+- **MCP tools** - Handle invalid period in `compare_content_types`
+- **Imports** - Move all lazy imports to module level, remove deprecated `default_app_config`
+
 ## [0.3.7] - 2026-02-07
 
 ### Fixed

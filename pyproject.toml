@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "djinsight"
-version = "0.3.7"
+version = "0.4.1"
 description = "MCP-first analytics for Django/Wagtail package for tracking page view statistics with Redis and async processing"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -45,11 +45,6 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "Django>=3.2",
-    "wagtail>=3.0",
-    "redis>=4.0.0",
-    "celery>=5.0.0",
-    "django-redis>=5.0.0",
-    "django-environ>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -73,6 +68,15 @@ test = [
     "pytest-cov>=3.0",
     "factory-boy>=3.0",
     "coverage>=6.0",
+]
+redis = [
+    "redis>=4.0.0",
+    "django-redis>=5.0.0",
+]
+celery = [
+    "redis>=4.0.0",
+    "django-redis>=5.0.0",
+    "celery>=5.0.0",
 ]
 mcp = [
     "mcp>=1.0.0",
@@ -101,6 +105,10 @@ djinsight = [
     "migrations/*.py",
     "management/commands/*.py",
     "templatetags/*.py",
+]
+"djinsight.wagtail" = [
+    "templates/**/*",
+    "static/**/*",
 ]
 
 [tool.black]
