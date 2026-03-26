@@ -116,7 +116,6 @@ def check_admin_permission(user):
 
 
 @user_passes_test(check_admin_permission, login_url=None)
-@csrf_exempt
 @require_POST
 @never_cache
 def get_page_stats(request):

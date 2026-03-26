@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 from django.template.loader import render_to_string
 
+from djinsight.conf import djinsight_settings
 from djinsight.models import PageViewStatistics, StatsQueryMixin
 
 
@@ -109,8 +110,6 @@ class DefaultWidgetRenderer(BaseRenderer):
         return str(data.get("views", 0))
 
     def _render_chart(self, data: Dict[str, Any]) -> str:
-        from djinsight.conf import djinsight_settings
-
         chart_renderer_class = djinsight_settings.get_chart_renderer()
         chart_renderer = chart_renderer_class(
             data=data,
@@ -121,7 +120,7 @@ class DefaultWidgetRenderer(BaseRenderer):
         return chart_renderer.render()
 
     def _render_json(self, data: Dict[str, Any]) -> str:
-        return json.dumps(data)
+        return json.dumps(data).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
     def _render_widget(self, data: Dict[str, Any]) -> str:
         return render_to_string(
@@ -148,12 +147,23 @@ class DefaultWidgetRenderer(BaseRenderer):
 
 
 class DefaultChartRenderer:
+    ALLOWED_CHART_TYPES = {"line", "bar"}
+
     def __init__(self, data, chart_type="line", chart_color=None, chart_id=None):
         self.data = data
-        self.chart_type = chart_type
-        self.chart_color = chart_color or "#007bff"
+        self.chart_type = chart_type if chart_type in self.ALLOWED_CHART_TYPES else "line"
+        self.chart_color = self._sanitize_color(chart_color) or "#007bff"
         self.chart_id = chart_id or f"chart-{uuid.uuid4().hex[:8]}"
-        self.chart_data_json = json.dumps(data.get("views", []))
+        raw_json = json.dumps(data.get("views", []))
+        self.chart_data_json = raw_json.replace("<", "\\u003c").replace(">", "\\u003e")
+
+    @staticmethod
+    def _sanitize_color(color):
+        """Allow only valid CSS hex colors."""
+        import re
+        if color and re.match(r'^#[0-9a-fA-F]{3,8}$', color):
+            return color
+        return None
 
     def render(self) -> str:
         views_data = self.data.get("views", [])
