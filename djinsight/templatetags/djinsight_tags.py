@@ -2,13 +2,16 @@ import json
 
 from django import template
 from django.template.loader import render_to_string
+from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
 
 from djinsight.conf import djinsight_settings
 from djinsight.utils import (
     check_stats_permission,
     format_view_count,
+    get_content_type_label,
     get_object_from_context,
+    get_object_url,
 )
 
 register = template.Library()
@@ -59,15 +62,12 @@ def format_count(count):
 
 @register.filter
 def to_json(data):
-    return mark_safe(json.dumps(data))
+    escaped = json.dumps(data).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    return mark_safe(escaped)
 
 
 @register.simple_tag(takes_context=True)
 def track(context, obj=None):
-    from django.urls import NoReverseMatch, reverse
-
-    from djinsight.utils import get_content_type_label, get_object_url
-
     request = context.get("request")
     if not request or not djinsight_settings.ENABLE_TRACKING:
         return ""
@@ -87,7 +87,7 @@ def track(context, obj=None):
             "content_type": get_content_type_label(obj),
             "url": get_object_url(obj, request),
         }
-    )
+    ).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
     return mark_safe(
         render_to_string(
