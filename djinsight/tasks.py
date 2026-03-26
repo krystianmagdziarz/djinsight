@@ -5,18 +5,29 @@ from datetime import datetime, timedelta
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
-from redis.exceptions import ConnectionError, TimeoutError
 
 from djinsight.conf import djinsight_settings
 from djinsight.models import PageViewEvent, PageViewStatistics, PageViewSummary
-from djinsight.providers.redis import RedisProvider
 
 logger = logging.getLogger(__name__)
 
-redis_provider = RedisProvider()
-redis_client = redis_provider.client
-REDIS_KEY_PREFIX = redis_provider.key_prefix
+_redis_client = None
+
+
+def _get_redis_client():
+    """Lazy initialization of Redis client. Returns None if Redis unavailable."""
+    global _redis_client
+    if _redis_client is None:
+        try:
+            from djinsight.providers.redis import RedisProvider
+            provider = RedisProvider()
+            _redis_client = provider.client
+        except Exception:
+            logger.warning("Redis client not available, tasks requiring Redis will be skipped")
+            return None
+    return _redis_client
 
 # Try to import Celery - if not available, tasks will be regular functions
 try:
@@ -24,9 +35,13 @@ try:
 
     HAS_CELERY = True
 except ImportError:
-    # Fallback decorator for when Celery is not available
-    def shared_task(func):
-        return func
+    # Fallback decorator - must handle bind=True kwargs gracefully
+    def shared_task(*args, **kwargs):
+        def decorator(func):
+            return func
+        if args and callable(args[0]):
+            return args[0]
+        return decorator
 
     HAS_CELERY = False
 
@@ -141,6 +156,7 @@ def process_page_views(
     """
     batch_size = batch_size or djinsight_settings.PROCESS_BATCH_SIZE
     max_records = max_records or djinsight_settings.PROCESS_MAX_RECORDS
+    redis_client = _get_redis_client()
     if not redis_client:
         logger.error("Redis client not available")
         return 0
@@ -149,26 +165,22 @@ def process_page_views(
 
     try:
         # Get all keys matching the page view pattern, excluding counters and sessions
-        pattern = f"{REDIS_KEY_PREFIX}:*"
+        prefix = djinsight_settings.REDIS_KEY_PREFIX
+        pattern = f"{prefix}*"
         exclude_patterns = [
-            f"{REDIS_KEY_PREFIX}:counter:",
-            f"{REDIS_KEY_PREFIX}:unique_counter:",
-            f"{REDIS_KEY_PREFIX}:session:",
+            f"{prefix}counter:",
+            f"{prefix}unique_counter:",
+            f"{prefix}session:",
         ]
 
-        # Get all keys
-        all_keys = redis_client.keys(pattern)
-        # Filter out counter and session keys
-        keys = [
-            key.decode("utf-8")
-            for key in all_keys
-            if not any(
-                key.decode("utf-8").startswith(exclude) for exclude in exclude_patterns
-            )
-        ]
-
-        # Limit the number of keys to process
-        keys = keys[:max_records]
+        # Use SCAN instead of KEYS to avoid blocking Redis
+        keys = []
+        for key in redis_client.scan_iter(match=pattern, count=1000):
+            decoded = key.decode("utf-8")
+            if not any(decoded.startswith(exclude) for exclude in exclude_patterns):
+                keys.append(decoded)
+                if len(keys) >= max_records:
+                    break
 
         if not keys:
             logger.info("No page views to process")
@@ -190,9 +202,6 @@ def process_page_views(
         logger.info(f"Completed processing {processed_count} page views")
         return processed_count
 
-    except (ConnectionError, TimeoutError) as e:
-        logger.error(f"Redis connection error: {e}")
-        raise
     except Exception as e:
         logger.error(f"Error processing page views: {e}")
         raise
@@ -208,6 +217,7 @@ def process_batch(keys):
     Returns:
         int: Number of records processed in this batch
     """
+    redis_client = _get_redis_client()
     if not redis_client:
         return 0
 
@@ -303,12 +313,15 @@ def process_batch(keys):
                         content_type_id=content_type_id,
                         object_id=object_id,
                     )
-                    stats.total_views += total
-                    stats.unique_views += unique
-                    stats.last_viewed_at = timezone.now()
+                    now = timezone.now()
+                    updates = {
+                        "total_views": F("total_views") + total,
+                        "unique_views": F("unique_views") + unique,
+                        "last_viewed_at": now,
+                    }
                     if not stats.first_viewed_at:
-                        stats.first_viewed_at = timezone.now()
-                    stats.save(update_fields=['total_views', 'unique_views', 'last_viewed_at', 'first_viewed_at'])
+                        updates["first_viewed_at"] = now
+                    PageViewStatistics.objects.filter(pk=stats.pk).update(**updates)
 
                 except Exception as e:
                     logger.error(
@@ -398,16 +411,29 @@ def cleanup_old_data(days_to_keep=None):
 
     logger.info(f"Cleaning up page view logs older than {cutoff_date}")
 
-    deleted_count, _ = PageViewEvent.objects.filter(timestamp__lt=cutoff_date).delete()
+    # Delete in batches to avoid long-running transactions
+    batch_size = djinsight_settings.CLEANUP_BATCH_SIZE
+    deleted_count = 0
+    while True:
+        batch_ids = list(
+            PageViewEvent.objects.filter(timestamp__lt=cutoff_date)
+            .values_list("id", flat=True)[:batch_size]
+        )
+        if not batch_ids:
+            break
+        count, _ = PageViewEvent.objects.filter(id__in=batch_ids).delete()
+        deleted_count += count
 
     logger.info(f"Deleted {deleted_count} old page view events")
 
     # Also cleanup old Redis session keys (this is optional)
+    redis_client = _get_redis_client()
     if redis_client:
         try:
             # Clean up session keys older than days_to_keep
-            session_pattern = f"{REDIS_KEY_PREFIX}:session:*"
-            session_keys = redis_client.keys(session_pattern)
+            prefix = djinsight_settings.REDIS_KEY_PREFIX
+            session_pattern = f"{prefix}session:*"
+            session_keys = list(redis_client.scan_iter(match=session_pattern, count=1000))
 
             # Check TTL and delete expired keys manually
             # (Redis should handle this automatically, but just in case)
