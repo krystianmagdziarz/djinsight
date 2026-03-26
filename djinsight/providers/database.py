@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from asgiref.sync import sync_to_async
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import F
 from django.utils import timezone
 
 from djinsight.models import PageViewEvent, PageViewStatistics
@@ -50,22 +51,18 @@ class DatabaseProvider(BaseProvider):
                 object_id=object_id,
             )
 
-            stats.total_views += 1
+            now = timezone.now()
+            updates = {
+                "total_views": F("total_views") + 1,
+                "last_viewed_at": now,
+            }
             if event_data.get("is_unique"):
-                stats.unique_views += 1
-
-            stats.last_viewed_at = timezone.now()
+                updates["unique_views"] = F("unique_views") + 1
             if not stats.first_viewed_at:
-                stats.first_viewed_at = timezone.now()
+                updates["first_viewed_at"] = now
 
-            stats.save(
-                update_fields=[
-                    "total_views",
-                    "unique_views",
-                    "last_viewed_at",
-                    "first_viewed_at",
-                ]
-            )
+            PageViewStatistics.objects.filter(pk=stats.pk).update(**updates)
+            stats.refresh_from_db()
 
             return {
                 "success": True,
