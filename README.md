@@ -79,39 +79,46 @@ That's it. Views are now tracked.
 
 ## Connect to Claude
 
-1. Create API key in Django admin: `/admin/djinsight/mcpapikey/`
-
-2. Install the MCP package:
+1. Install with MCP support:
 
 ```bash
-cd /path/to/djinsight/mcp-package
-npm install
+pip install djinsight[mcp]
 ```
 
-3. Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+2. Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
 	"mcpServers": {
 		"djinsight": {
-			"command": "node",
-			"args": ["/path/to/djinsight/mcp-package/index.js"],
+			"command": "python",
+			"args": ["-m", "djinsight.mcp"],
 			"env": {
-				"DJINSIGHT_URL": "http://localhost:8000",
-				"DJINSIGHT_API_KEY": "your_api_key"
+				"DJANGO_SETTINGS_MODULE": "your_project.settings"
 			}
 		}
 	}
 }
 ```
 
-4. Restart Claude Desktop.
+3. Restart Claude Desktop.
+
+**13 tools available:**
+
+- **Basic:** `get_page_stats`, `get_top_pages`, `list_tracked_models`
+- **Periods:** `get_period_stats`, `compare_periods`
+- **Trends:** `get_trending_pages`
+- **Referrers:** `get_referrer_stats`, `get_traffic_sources`
+- **Behavior:** `get_device_breakdown`, `get_hourly_pattern`
+- **Cross-model:** `get_site_overview`, `compare_content_types`
+- **Search:** `search_pages`
 
 Now Claude can answer:
 
-- "What are my top 10 pages?"
-- "How many views did article #5 get this week?"
-- "Show me view trends for the homepage"
+- "What are my top 10 pages this week?"
+- "Where does my traffic come from?"
+- "Which pages are trending up?"
+- "Compare mobile vs desktop traffic"
 
 ---
 
