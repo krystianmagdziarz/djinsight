@@ -77,6 +77,9 @@ test = [
 mcp = [
     "mcp>=1.0.0",
 ]
+wagtail = [
+    "wagtail>=5.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/krystianmagdziarz/djinsight"

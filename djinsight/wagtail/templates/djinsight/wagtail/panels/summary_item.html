@@ -1,0 +1,8 @@
+{% load i18n %}
+<li>
+    <svg class="icon icon-doc-empty" aria-hidden="true"><use href="#icon-doc-empty"></use></svg>
+    <a href="">
+        <span>{{ total_views|default:"0" }}</span>
+        {{ label }}
+    </a>
+</li>

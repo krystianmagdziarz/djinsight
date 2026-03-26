@@ -1,0 +1,102 @@
+{% load i18n %}
+<section class="panel summary nice-padding">
+    <h3>{% trans "Analytics Overview" %} <small style="color: #666; font-weight: normal;">({% trans "last 7 days" %}: {{ total_week_views }} {% trans "views" %})</small></h3>
+
+    {% if chart_data %}
+    <div style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 280px;">
+            <canvas id="djinsight-mini-chart" width="400" height="160"></canvas>
+        </div>
+        <div style="flex: 1; min-width: 250px;">
+            <h4 style="margin: 0 0 8px;">{% trans "Top Pages" %}</h4>
+            {% if top_pages %}
+            <table style="width: 100%; font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 4px 8px 4px 0;">{% trans "Page" %}</th>
+                        <th style="text-align: right; padding: 4px 0 4px 8px;">{% trans "Views" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page in top_pages %}
+                    <tr>
+                        <td style="padding: 3px 8px 3px 0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {% if page.edit_url %}
+                                <a href="{{ page.edit_url }}">{{ page.title }}</a>
+                            {% else %}
+                                {{ page.title }}
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; padding: 3px 0 3px 8px; font-variant-numeric: tabular-nums;">
+                            {{ page.total_views }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #999; font-size: 13px;">{% trans "No data yet." %}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var canvas = document.getElementById('djinsight-mini-chart');
+        if (!canvas) return;
+
+        var labels = {{ chart_labels|safe }};
+        var data = {{ chart_data|safe }};
+
+        // Simple canvas chart — no dependencies
+        var ctx = canvas.getContext('2d');
+        var w = canvas.width, h = canvas.height;
+        var pad = {top: 10, right: 10, bottom: 30, left: 40};
+        var cw = w - pad.left - pad.right;
+        var ch = h - pad.top - pad.bottom;
+        var max = Math.max.apply(null, data) || 1;
+
+        // Background
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(0, 0, w, h);
+
+        // Grid lines
+        ctx.strokeStyle = '#e9ecef';
+        ctx.lineWidth = 1;
+        for (var g = 0; g <= 4; g++) {
+            var gy = pad.top + ch - (ch * g / 4);
+            ctx.beginPath();
+            ctx.moveTo(pad.left, gy);
+            ctx.lineTo(w - pad.right, gy);
+            ctx.stroke();
+
+            ctx.fillStyle = '#999';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(Math.round(max * g / 4), pad.left - 6, gy + 4);
+        }
+
+        // Bars
+        var barW = cw / data.length * 0.6;
+        var gap = cw / data.length;
+        ctx.fillStyle = '#007bff';
+
+        for (var i = 0; i < data.length; i++) {
+            var barH = (data[i] / max) * ch;
+            var x = pad.left + gap * i + (gap - barW) / 2;
+            var y = pad.top + ch - barH;
+            ctx.fillRect(x, y, barW, barH);
+
+            // Labels
+            ctx.fillStyle = '#666';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(labels[i], pad.left + gap * i + gap / 2, h - 8);
+            ctx.fillStyle = '#007bff';
+        }
+    })();
+    </script>
+    {% else %}
+    <p style="color: #999;">{% trans "No analytics data available yet. Views will appear here once tracking is active." %}</p>
+    {% endif %}
+</section>
