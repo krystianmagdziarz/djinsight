@@ -1,7 +1,7 @@
 """Analytics dashboard view for Wagtail admin."""
 
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
 from django import forms
@@ -275,21 +275,35 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
         return context
 
     def _hydrate_results(self, stats_qs):
+        stats_list = list(stats_qs)
+        if not stats_list:
+            return []
         results = []
-        for stat in stats_qs:
-            ct = stat.content_type
+        url_finder = AdminURLFinder()
+        by_ct = defaultdict(list)
+        for stat in stats_list:
+            by_ct[stat.content_type_id].append(stat)
+        objects_cache = {}
+        for ct_id, ct_stats in by_ct.items():
+            ct = ct_stats[0].content_type
             model_class = ct.model_class()
+            if model_class:
+                obj_ids = [s.object_id for s in ct_stats]
+                for obj in model_class.objects.filter(pk__in=obj_ids):
+                    objects_cache[(ct_id, obj.pk)] = obj
+                    
+        for stat in stats_list:
+            ct = stat.content_type
             title = f"{ct.app_label}.{ct.model} #{stat.object_id}"
             edit_url = None
-
-            if model_class:
-                try:
-                    obj = model_class.objects.get(pk=stat.object_id)
-                    title = str(obj)
-                    edit_url = AdminURLFinder().get_edit_url(obj)
-                except model_class.DoesNotExist:
-                    title += " (deleted)"
-
+            
+            obj = objects_cache.get((stat.content_type_id, stat.object_id))
+            
+            if obj:
+                title = str(obj)
+                edit_url = url_finder.get_edit_url(obj)
+            elif ct.model_class():
+                title += " (deleted)"
             results.append({
                 "title": title,
                 "content_type": f"{ct.app_label}.{ct.model}",
@@ -297,7 +311,7 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
                 "unique_views": stat.unique_views,
                 "last_viewed_at": stat.last_viewed_at,
                 "edit_url": edit_url,
-            })
+            }) 
         return results
 
     @staticmethod
