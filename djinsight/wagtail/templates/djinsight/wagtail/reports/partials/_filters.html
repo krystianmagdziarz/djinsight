@@ -1,0 +1,23 @@
+{% load i18n %}
+
+<form method="get" class="dji-filters" id="dji-filter-form">
+    <div class="dji-filter-group">
+        <label>{% trans "Period" %}</label>
+        {{ filter_form.period }}
+    </div>
+    <div class="dji-filter-sep"></div>
+    <div class="dji-filter-group">
+        <label>{{ filter_form.date_from.label }}</label>
+        {{ filter_form.date_from }}
+    </div>
+    <div class="dji-filter-group">
+        <label>{{ filter_form.date_to.label }}</label>
+        {{ filter_form.date_to }}
+    </div>
+    <div class="dji-filter-sep"></div>
+    <div class="dji-filter-group">
+        <label>{% trans "Content type" %}</label>
+        {{ filter_form.content_type }}
+    </div>
+    <button type="submit" class="button dji-filter-apply">{% trans "Apply" %}</button>
+</form>

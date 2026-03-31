@@ -8,145 +8,34 @@
 {% endblock %}
 
 {% block main_content %}
-    {# --- Filters --- #}
-    <form method="get" class="dji-filters" id="dji-filter-form">
-        <div class="dji-filter-group">
-            <label>{% trans "Period" %}</label>
-            {{ filter_form.period }}
-        </div>
-        <div class="dji-filter-sep"></div>
-        <div class="dji-filter-group">
-            <label>{{ filter_form.date_from.label }}</label>
-            {{ filter_form.date_from }}
-        </div>
-        <div class="dji-filter-group">
-            <label>{{ filter_form.date_to.label }}</label>
-            {{ filter_form.date_to }}
-        </div>
-        <div class="dji-filter-sep"></div>
-        <div class="dji-filter-group">
-            <label>{% trans "Content type" %}</label>
-            {{ filter_form.content_type }}
-        </div>
-        <button type="submit" class="button dji-filter-apply">{% trans "Apply" %}</button>
-    </form>
+    {% block dji_filters %}
+        {% include "djinsight/wagtail/reports/partials/_filters.html" %}
+    {% endblock %}
 
-    {# --- Summary cards --- #}
-    <div class="dji-stats">
-        <div class="dji-stat">
-            <div class="val">{{ total_views }}</div>
-            <div class="lbl">{% trans "Total views" %}</div>
-        </div>
-        <div class="dji-stat">
-            <div class="val">{{ total_unique }}</div>
-            <div class="lbl">{% trans "Unique views" %}</div>
-        </div>
-        <div class="dji-stat">
-            <div class="val">{{ total_objects }}</div>
-            <div class="lbl">{% trans "Tracked objects" %}</div>
-        </div>
-    </div>
+    {% block dji_summary %}
+        {% include "djinsight/wagtail/reports/partials/_summary.html" %}
+    {% endblock %}
 
-    {# --- Daily views chart --- #}
-    <div class="dji-chart-container">
-        <h3>{% trans "Daily Views" %}</h3>
-        <div style="position:relative;height:280px;">
-            <canvas id="dji-daily-chart"></canvas>
-        </div>
-    </div>
+    {% block dji_chart %}
+        {% include "djinsight/wagtail/reports/partials/_chart.html" %}
+    {% endblock %}
 
-    {# --- Traffic Sources & Devices --- #}
-    <div class="dji-row">
-        <div class="dji-card">
-            <h3>{% trans "Traffic Sources" %} <small>({{ source_total }} {% trans "total" %})</small></h3>
-            {% for source in sources %}
-            <div class="dji-bar">
-                <span class="dji-bar-label">{{ source.source }}</span>
-                <div class="dji-bar-track">
-                    <div class="dji-bar-fill" style="width: {{ source.percentage }}%; background: {% if source.source == 'direct' %}#6c757d{% elif source.source == 'search' %}#007bff{% elif source.source == 'social' %}#e83e8c{% else %}#28a745{% endif %};"></div>
-                </div>
-                <span class="dji-bar-val">{{ source.views }} ({{ source.percentage }}%)</span>
-            </div>
-            {% empty %}
-            <p class="dji-muted">{% trans "No data." %}</p>
-            {% endfor %}
-        </div>
+    {% block dji_traffic_devices %}
+        {% include "djinsight/wagtail/reports/partials/_traffic_devices.html" %}
+    {% endblock %}
 
-        <div class="dji-card">
-            <h3>{% trans "Devices" %} <small>({{ device_total }} {% trans "total" %})</small></h3>
-            {% for device in devices %}
-            <div class="dji-bar">
-                <span class="dji-bar-label">{{ device.device }}</span>
-                <div class="dji-bar-track">
-                    <div class="dji-bar-fill" style="width: {{ device.percentage }}%; background: {% if device.device == 'desktop' %}#007bff{% elif device.device == 'mobile' %}#fd7e14{% elif device.device == 'tablet' %}#6f42c1{% elif device.device == 'bot' %}#6c757d{% else %}#adb5bd{% endif %};"></div>
-                </div>
-                <span class="dji-bar-val">{{ device.views }} ({{ device.percentage }}%)</span>
-            </div>
-            {% empty %}
-            <p class="dji-muted">{% trans "No data." %}</p>
-            {% endfor %}
-        </div>
-    </div>
-
-    {# --- Page Views table --- #}
-    <h2 class="dji-section-title">{% trans "Page Views" %}</h2>
-
-    {% if results_data %}
-    <table class="dji-table">
-        <thead>
-            <tr>
-                <th>{% trans "Page" %}</th>
-                <th>{% trans "Type" %}</th>
-                <th class="num">{% trans "Views" %}</th>
-                <th class="num">{% trans "Unique" %}</th>
-                <th>{% trans "Last viewed" %}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in results_data %}
-            <tr>
-                <td>
-                    {% if row.edit_url %}<a href="{{ row.edit_url }}">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}
-                </td>
-                <td class="meta">{{ row.content_type }}</td>
-                <td class="num">{{ row.total_views }}</td>
-                <td class="num">{{ row.unique_views }}</td>
-                <td class="meta">
-                    {% if row.last_viewed_at %}{{ row.last_viewed_at|timesince }} {% trans "ago" %}{% else %}—{% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% if page_obj.has_other_pages %}
-    <nav class="dji-pagination">
-        {% if page_obj.has_previous %}
-            <a href="?{{ pagination_qs }}&page={{ page_obj.previous_page_number }}">&laquo; {% trans "Previous" %}</a>
-        {% endif %}
-        <span class="dji-page-info">
-            {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}
-                Page {{ current }} of {{ total }}
-            {% endblocktrans %}
-        </span>
-        {% if page_obj.has_next %}
-            <a href="?{{ pagination_qs }}&page={{ page_obj.next_page_number }}">{% trans "Next" %} &raquo;</a>
-        {% endif %}
-    </nav>
-    {% endif %}
-
-    {% else %}
-    <p class="dji-muted">{% trans "No page view data found for the selected filters." %}</p>
-    {% endif %}
+    {% block dji_table %}
+        {% include "djinsight/wagtail/reports/partials/_table.html" %}
+    {% endblock %}
 {% endblock %}
 
 {% block extra_js %}
     {{ block.super }}
     {{ filter_form.media.js }}
     <script src="{% static 'djinsight/wagtail/js/chart.min.js' %}"></script>
+    {% block dji_extra_js %}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Period preset → clear dates and submit
         var periodSelect = document.getElementById('id_period');
         if (periodSelect) {
             periodSelect.addEventListener('change', function() {
@@ -159,49 +48,7 @@
                 }
             });
         }
-
-        // Daily chart
-        var ctx = document.getElementById('dji-daily-chart');
-        if (ctx && typeof Chart !== 'undefined') {
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: {{ chart_labels_json|safe }},
-                    datasets: [
-                        {
-                            label: '{% trans "Views" %}',
-                            data: {{ chart_views_json|safe }},
-                            borderColor: '#007bff',
-                            backgroundColor: 'rgba(0,123,255,0.1)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 2,
-                        },
-                        {
-                            label: '{% trans "Unique" %}',
-                            data: {{ chart_unique_json|safe }},
-                            borderColor: '#28a745',
-                            backgroundColor: 'rgba(40,167,69,0.1)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 2,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } },
-                        x: { ticks: { maxTicksAutoSkip: true, maxRotation: 45 } }
-                    },
-                    plugins: {
-                        legend: { position: 'top' }
-                    }
-                }
-            });
-        }
     });
     </script>
+    {% endblock %}
 {% endblock %}
