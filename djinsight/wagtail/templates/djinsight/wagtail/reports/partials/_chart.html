@@ -1,0 +1,53 @@
+{% load i18n %}
+
+<div class="dji-chart-container">
+    <h3>{% trans "Daily Views" %}</h3>
+    <div style="position:relative;height:280px;">
+        <canvas id="dji-daily-chart"></canvas>
+    </div>
+</div>
+<script>
+(function() {
+    var ctx = document.getElementById('dji-daily-chart');
+    if (ctx && typeof Chart !== 'undefined') {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels_json|safe }},
+                datasets: [
+                    {
+                        label: '{% trans "Views" %}',
+                        data: {{ chart_views_json|safe }},
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0,123,255,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                    {
+                        label: '{% trans "Unique" %}',
+                        data: {{ chart_unique_json|safe }},
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40,167,69,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } },
+                    x: { ticks: { maxTicksAutoSkip: true, maxRotation: 45 } }
+                },
+                plugins: {
+                    legend: { position: 'top' }
+                }
+            }
+        });
+    }
+})();
+</script>

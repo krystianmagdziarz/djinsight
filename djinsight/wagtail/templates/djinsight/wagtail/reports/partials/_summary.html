@@ -1,0 +1,16 @@
+{% load i18n %}
+
+<div class="dji-stats">
+    <div class="dji-stat">
+        <div class="val">{{ total_views }}</div>
+        <div class="lbl">{% trans "Total views" %}</div>
+    </div>
+    <div class="dji-stat">
+        <div class="val">{{ total_unique }}</div>
+        <div class="lbl">{% trans "Unique views" %}</div>
+    </div>
+    <div class="dji-stat">
+        <div class="val">{{ total_objects }}</div>
+        <div class="lbl">{% trans "Tracked objects" %}</div>
+    </div>
+</div>

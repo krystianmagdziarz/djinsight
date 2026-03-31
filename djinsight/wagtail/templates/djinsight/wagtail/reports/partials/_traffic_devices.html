@@ -1,0 +1,33 @@
+{% load i18n %}
+
+<div class="dji-row">
+    <div class="dji-card">
+        <h3>{% trans "Traffic Sources" %} <small>({{ source_total }} {% trans "total" %})</small></h3>
+        {% for source in sources %}
+        <div class="dji-bar">
+            <span class="dji-bar-label">{{ source.source }}</span>
+            <div class="dji-bar-track">
+                <div class="dji-bar-fill" style="width: {{ source.percentage }}%; background: {% if source.source == 'direct' %}#6c757d{% elif source.source == 'search' %}#007bff{% elif source.source == 'social' %}#e83e8c{% else %}#28a745{% endif %};"></div>
+            </div>
+            <span class="dji-bar-val">{{ source.views }} ({{ source.percentage }}%)</span>
+        </div>
+        {% empty %}
+        <p class="dji-muted">{% trans "No data." %}</p>
+        {% endfor %}
+    </div>
+
+    <div class="dji-card">
+        <h3>{% trans "Devices" %} <small>({{ device_total }} {% trans "total" %})</small></h3>
+        {% for device in devices %}
+        <div class="dji-bar">
+            <span class="dji-bar-label">{{ device.device }}</span>
+            <div class="dji-bar-track">
+                <div class="dji-bar-fill" style="width: {{ device.percentage }}%; background: {% if device.device == 'desktop' %}#007bff{% elif device.device == 'mobile' %}#fd7e14{% elif device.device == 'tablet' %}#6f42c1{% elif device.device == 'bot' %}#6c757d{% else %}#adb5bd{% endif %};"></div>
+            </div>
+            <span class="dji-bar-val">{{ device.views }} ({{ device.percentage }}%)</span>
+        </div>
+        {% empty %}
+        <p class="dji-muted">{% trans "No data." %}</p>
+        {% endfor %}
+    </div>
+</div>
