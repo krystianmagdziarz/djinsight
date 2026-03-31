@@ -1,0 +1,51 @@
+{% load i18n %}
+
+<h2 class="dji-section-title">{% trans "Page Views" %}</h2>
+
+{% if results_data %}
+<table class="dji-table">
+    <thead>
+        <tr>
+            <th>{% trans "Page" %}</th>
+            <th>{% trans "Type" %}</th>
+            <th class="num">{% trans "Views" %}</th>
+            <th class="num">{% trans "Unique" %}</th>
+            <th>{% trans "Last viewed" %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in results_data %}
+        <tr>
+            <td>
+                {% if row.edit_url %}<a href="{{ row.edit_url }}">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}
+            </td>
+            <td class="meta">{{ row.content_type }}</td>
+            <td class="num">{{ row.total_views }}</td>
+            <td class="num">{{ row.unique_views }}</td>
+            <td class="meta">
+                {% if row.last_viewed_at %}{{ row.last_viewed_at|timesince }} {% trans "ago" %}{% else %}—{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<nav class="dji-pagination">
+    {% if page_obj.has_previous %}
+        <a href="?{{ pagination_qs }}&page={{ page_obj.previous_page_number }}">&laquo; {% trans "Previous" %}</a>
+    {% endif %}
+    <span class="dji-page-info">
+        {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}
+            Page {{ current }} of {{ total }}
+        {% endblocktrans %}
+    </span>
+    {% if page_obj.has_next %}
+        <a href="?{{ pagination_qs }}&page={{ page_obj.next_page_number }}">{% trans "Next" %} &raquo;</a>
+    {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<p class="dji-muted">{% trans "No page view data found for the selected filters." %}</p>
+{% endif %}
