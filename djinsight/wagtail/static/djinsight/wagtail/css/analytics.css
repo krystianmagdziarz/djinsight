@@ -7,7 +7,7 @@
     gap: 16px;
     margin: 20px 0 28px;
     padding: 16px 20px;
-    background: #f8f9fa;
+    background: #f1f1f1;
     border-radius: 8px;
     flex-wrap: wrap;
 }
@@ -20,6 +20,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+    flex: 1;
 }
 
 .dji-filter-group label {
@@ -31,9 +32,15 @@
 }
 
 .dji-filters select,
+.dji-filters input[type="text"],
+.dji-filters .datepicker {
+    width: 100%;
+    max-width: none;
+}
+
+.dji-filters select,
 .dji-filters input[type="text"] {
     padding: 0 12px;
-    border: 1px solid #d4d4d8;
     border-radius: 6px;
     font-size: 14px;
     height: 36px;
@@ -46,7 +53,6 @@
 
 .dji-filters select:focus,
 .dji-filters input[type="text"]:focus {
-    border-color: #007bff;
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
@@ -84,10 +90,9 @@
 .dji-stat {
     flex: 1;
     min-width: 140px;
-    background: #f8f9fa;
+    background: #f1f1f1;
     border-radius: 8px;
     padding: 16px 20px;
-    border: 1px solid #e9ecef;
 }
 
 .dji-stat .val {
@@ -105,8 +110,7 @@
 
 /* ── Chart ── */
 .dji-chart-container {
-    background: #fff;
-    border: 1px solid #e9ecef;
+    background: #f1f1f1;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 24px;
@@ -130,8 +134,7 @@
 .dji-card {
     flex: 1;
     min-width: 280px;
-    background: #fff;
-    border: 1px solid #e9ecef;
+    background: #f1f1f1;
     border-radius: 8px;
     padding: 20px;
 }
@@ -166,7 +169,7 @@
 .dji-bar-track {
     flex: 1;
     height: 22px;
-    background: #f0f0f0;
+    background: #f1f1f1;
     border-radius: 4px;
     overflow: hidden;
 }
@@ -214,12 +217,12 @@
 
 .dji-table td {
     padding: 10px 12px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f1f1f1;
     font-size: 14px;
 }
 
 .dji-table tbody tr:hover {
-    background: #f8f9fa;
+    background: #f1f1f1;
 }
 
 .dji-table .num {
@@ -257,4 +260,52 @@
 .dji-page-info {
     color: #888;
     font-size: 13px;
+}
+
+html[class*="theme-dark"] .dji-chart-container,
+html[class*="theme-dark"] .dji-stat,
+html[class*="theme-dark"] .dji-filters,
+html[class*="theme-dark"] .dji-card {
+  background: var(--w-color-surface-menus, var(--w-color-surface-page, #18181b));
+  color: var(--w-color-text-meta, #9ca3af);
+}
+html[class*="theme-dark"] .dji-filters input,
+html[class*="theme-dark"] .dji-filters select {
+  background-color: var(--w-color-surface-field, #333);
+  color: var(--w-color-text-meta, #9ca3af);
+}
+html[class*="theme-dark"] .dji-card h3,
+html[class*="theme-dark"] .dji-stat div:first-child,
+html[class*="theme-dark"] .dji-filters label {
+    color: var(--w-color-text-context, #fff);
+}
+html[class*="theme-dark"] .dji-stat div, 
+html[class*="theme-dark"] .dji-card span {
+  color: var(--w-color-text-meta, #9ca3af);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([class*="theme-light"]) .dji-chart-container,
+  html:not([class*="theme-light"]) .dji-stat,
+  html:not([class*="theme-light"]) .dji-filters,
+  html:not([class*="theme-light"]) .dji-card {
+    background: var(--w-color-surface-menus, var(--w-color-surface-page, #18181b));
+    color: var(--w-color-text-meta, #9ca3af);
+  }
+  html:not([class*="theme-light"]) .dji-filters input,
+  html:not([class*="theme-light"]) .dji-filters select {
+    background-color: var(--w-color-surface-field, #333);
+    color: var(--w-color-text-meta, #9ca3af);
+  }
+
+  html:not([class*="theme-light"]) .dji-card h3,
+  html:not([class*="theme-light"]) .dji-stat div:first-child,
+  html:not([class*="theme-light"]) .dji-filters label {
+    color: var(--w-color-text-context, #fff);
+  }
+
+  html:not([class*="theme-light"]) .dji-stat div,
+  html:not([class*="theme-light"]) .dji-card span {
+    color: var(--w-color-text-meta, #9ca3af);
+  }
 }
