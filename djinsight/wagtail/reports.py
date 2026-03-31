@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
 from django import forms
+from django.apps import apps
 from django.contrib.auth.views import redirect_to_login
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
@@ -54,7 +55,10 @@ class AnalyticsFilterForm(forms.Form):
         super().__init__(*args, **kwargs)
         ct_choices = [("", _("All"))]
         if content_type_choices:
-            ct_choices += [(ct, ct) for ct in content_type_choices]
+            if content_type_choices and isinstance(content_type_choices[0], (list, tuple)):
+                ct_choices += content_type_choices
+            else:
+                ct_choices += [(ct, ct) for ct in content_type_choices]
         self.fields["content_type"].choices = ct_choices
 
 PAGE_SIZE = 25
@@ -126,10 +130,12 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
             .distinct()
             .order_by("content_type__app_label", "content_type__model")
         )
-        ct_choices = [
-            f"{row['content_type__app_label']}.{row['content_type__model']}"
-            for row in tracked_cts
-        ]
+        ct_choices = []
+        for row in tracked_cts:
+            app_label = row["content_type__app_label"]
+            model_name = row["content_type__model"]
+            label = self._get_content_type_label(app_label, model_name)
+            ct_choices.append((f"{app_label}.{model_name}", label))
 
         # Filter form with Wagtail date pickers
         form = AnalyticsFilterForm(
@@ -283,36 +289,50 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
         by_ct = defaultdict(list)
         for stat in stats_list:
             by_ct[stat.content_type_id].append(stat)
+
         objects_cache = {}
+        labels_cache = {}
+
         for ct_id, ct_stats in by_ct.items():
             ct = ct_stats[0].content_type
             model_class = ct.model_class()
+            labels_cache[ct_id] = self._get_content_type_label(ct.app_label, ct.model)
+
             if model_class:
                 obj_ids = [s.object_id for s in ct_stats]
                 for obj in model_class.objects.filter(pk__in=obj_ids):
                     objects_cache[(ct_id, obj.pk)] = obj
-                    
+
         for stat in stats_list:
             ct = stat.content_type
             title = f"{ct.app_label}.{ct.model} #{stat.object_id}"
             edit_url = None
-            
+
             obj = objects_cache.get((stat.content_type_id, stat.object_id))
-            
+
             if obj:
                 title = str(obj)
                 edit_url = url_finder.get_edit_url(obj)
             elif ct.model_class():
                 title += " (deleted)"
+
             results.append({
                 "title": title,
                 "content_type": f"{ct.app_label}.{ct.model}",
+                "content_type_label": labels_cache.get(stat.content_type_id),
                 "total_views": stat.total_views,
                 "unique_views": stat.unique_views,
                 "last_viewed_at": stat.last_viewed_at,
                 "edit_url": edit_url,
-            }) 
+            })
         return results
+
+    def _get_content_type_label(self, app_label, model_name):
+        try:
+            model_class = apps.get_model(app_label, model_name)
+            return model_class._meta.verbose_name
+        except (LookupError, AttributeError):
+            return f"{app_label}.{model_name}"
 
     @staticmethod
     def _classify_referrer(referrer):
