@@ -152,24 +152,32 @@
 }
 
 .dji-bar {
+    margin-bottom: 12px;
+}
+
+.dji-bar-header {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
 }
 
 .dji-bar-label {
-    width: 70px;
     font-size: 13px;
-    color: #555;
-    text-transform: capitalize;
+    color: #444;
     font-weight: 500;
 }
 
+.dji-bar-val {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: #666;
+    white-space: nowrap;
+}
+
 .dji-bar-track {
-    flex: 1;
-    height: 22px;
-    background: #f1f1f1;
+    height: 8px;
+    background: #e0e0e0;
     border-radius: 4px;
     overflow: hidden;
 }
@@ -181,13 +189,17 @@
     transition: width 0.3s ease;
 }
 
-.dji-bar-val {
-    width: 100px;
-    text-align: right;
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    color: #555;
-}
+/* ── Bar fill colors ── */
+.dji-bkg-direct   { background: #6c757d; }
+.dji-bkg-search   { background: #007bff; }
+.dji-bkg-social   { background: #e83e8c; }
+.dji-bkg-referral { background: #28a745; }
+
+.dji-bkg-desktop  { background: #007bff; }
+.dji-bkg-mobile   { background: #fd7e14; }
+.dji-bkg-tablet   { background: #6f42c1; }
+.dji-bkg-bot      { background: #6c757d; }
+.dji-bkg-unknown  { background: #adb5bd; }
 
 /* ── Page views table ── */
 .dji-section-title {

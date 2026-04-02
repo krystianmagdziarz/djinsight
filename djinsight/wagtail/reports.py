@@ -252,14 +252,15 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
             source_counter[self._classify_referrer(referrer)] += 1
 
         source_total = sum(source_counter.values())
-        context["sources"] = [
-            {
+        context["sources"] = []
+        for name, views in source_counter.most_common():
+            pct = views / source_total * 100 if source_total else 0
+            context["sources"].append({
                 "source": name,
+                "label": self.SOURCE_LABELS[name],
                 "views": views,
-                "percentage": round(views / source_total * 100, 1) if source_total else 0,
-            }
-            for name, views in source_counter.most_common()
-        ]
+                "pct_str": f"{pct:.1f}",
+            })
         context["source_total"] = source_total
 
         # Device breakdown
@@ -268,14 +269,15 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
             device_counter[self._classify_device(ua)] += 1
 
         device_total = sum(device_counter.values())
-        context["devices"] = [
-            {
+        context["devices"] = []
+        for name, views in device_counter.most_common():
+            pct = views / device_total * 100 if device_total else 0
+            context["devices"].append({
                 "device": name,
+                "label": self.DEVICE_LABELS[name],
                 "views": views,
-                "percentage": round(views / device_total * 100, 1) if device_total else 0,
-            }
-            for name, views in device_counter.most_common()
-        ]
+                "pct_str": f"{pct:.1f}",
+            })
         context["device_total"] = device_total
 
         return context
@@ -333,6 +335,21 @@ class AnalyticsDashboardView(WagtailAdminTemplateMixin, TemplateView):
             return model_class._meta.verbose_name
         except (LookupError, AttributeError):
             return f"{app_label}.{model_name}"
+
+    SOURCE_LABELS = {
+        "direct": _("Direct"),
+        "search": _("Search"),
+        "social": _("Social"),
+        "referral": _("Referral"),
+    }
+
+    DEVICE_LABELS = {
+        "desktop": _("Desktop"),
+        "mobile": _("Mobile"),
+        "tablet": _("Tablet"),
+        "bot": _("Bot"),
+        "unknown": _("Unknown"),
+    }
 
     @staticmethod
     def _classify_referrer(referrer):
