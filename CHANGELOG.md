@@ -1,3 +1,21 @@
+## [0.4.2] - 2026-04-03
+
+### Added
+
+- **Polish translations** (i18n) for analytics dashboard
+- **Dark mode** support for analytics dashboard (Wagtail theme-aware)
+- **Config flags** (`DJINSIGHT_WAGTAIL`) to disable default Wagtail hooks
+- **Verbose model names** in content type filter and table
+
+### Changed
+
+- **Dashboard templates** refactored into partials for easier customization
+
+### Fixed
+
+- **N+1 queries** in dashboard table hydration (PR #4)
+- **Progress bar layout** in traffic sources and devices
+
 ## [0.4.1] - 2026-03-26
 
 ### Fixed
