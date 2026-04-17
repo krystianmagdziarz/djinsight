@@ -24,7 +24,7 @@
             return response.json();
         })
         .then(function(data) {
-            if (data.success) {
+            if (data.success || data.status === 'success') {
                 {% if debug %}
                 console.log('[djinsight] Object view recorded successfully:', data);
                 {% endif %}
@@ -49,4 +49,4 @@
     trackObjectView();
     {% endif %}
 })();
-</script> 
+</script>
