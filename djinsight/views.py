@@ -103,7 +103,7 @@ def record_page_view(request):
         return JsonResponse(result)
 
     except Exception as e:
-        logger.error(f"Error in record_page_view: {e}")
+        logger.exception("Error in record_page_view")
         return JsonResponse(
             {"status": "error", "message": "Internal server error"}, status=500
         )
@@ -151,7 +151,7 @@ def get_page_stats(request):
     except json.JSONDecodeError:
         return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
     except Exception as e:
-        logger.error(f"Error getting stats: {e}")
+        logger.exception("Error getting stats")
         return JsonResponse(
             {"status": "error", "message": "Internal error"}, status=500
         )
