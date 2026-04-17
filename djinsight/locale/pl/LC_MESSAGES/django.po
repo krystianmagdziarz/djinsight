@@ -1,0 +1,351 @@
+# djinsight Polish translation.
+# Copyright (C) 2026 Krystian Magdziarz
+# This file is distributed under the same license as the djinsight package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: djinsight\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-02 12:07+0000\n"
+"PO-Revision-Date: 2026-04-02 14:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && "
+"(n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && "
+"n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);\n"
+#: djinsight/models.py:19
+msgid "Content Type"
+msgstr "Typ zawartości"
+
+#: djinsight/models.py:21
+msgid "Enabled"
+msgstr "Włączone"
+
+#: djinsight/models.py:22
+msgid "Track Anonymous"
+msgstr "Śledź anonimowych użytkowników"
+
+#: djinsight/models.py:23
+msgid "Track Authenticated"
+msgstr "Śledź uwierzytelnionych użytkowników"
+
+#: djinsight/models.py:24 djinsight/models.py:332
+msgid "Created At"
+msgstr "Data utworzenia"
+
+#: djinsight/models.py:25 djinsight/models.py:58
+msgid "Updated At"
+msgstr "Data aktualizacji"
+
+#: djinsight/models.py:28
+msgid "Content Type Registry"
+msgstr "Rejestr typu zawartości"
+
+#: djinsight/models.py:29
+msgid "Content Type Registries"
+msgstr "Rejestry typów zawartości"
+
+#: djinsight/models.py:54 djinsight/models.py:149
+msgid "Total Views"
+msgstr "Łączna liczba wyświetleń"
+
+#: djinsight/models.py:55 djinsight/models.py:150
+msgid "Unique Views"
+msgstr "Unikalne wyświetlenia"
+
+#: djinsight/models.py:56
+msgid "First Viewed At"
+msgstr "Data pierwszego wyświetlenia"
+
+#: djinsight/models.py:57
+msgid "Last Viewed At"
+msgstr "Data ostatniego wyświetlenia"
+
+#: djinsight/models.py:61 djinsight/models.py:62
+msgid "Page View Statistics"
+msgstr "Statystyki wyświetleń strony"
+
+#: djinsight/models.py:119
+msgid "URL"
+msgstr "URL"
+
+#: djinsight/models.py:121
+msgid "Session Key"
+msgstr "Klucz sesji"
+
+#: djinsight/models.py:122
+msgid "IP Address"
+msgstr "Adres IP"
+
+#: djinsight/models.py:123
+msgid "User Agent"
+msgstr "User-Agent"
+
+#: djinsight/models.py:124
+msgid "Referrer"
+msgstr "Odnośnik"
+
+#: djinsight/models.py:126
+msgid "Timestamp"
+msgstr "Znacznik czasu"
+
+#: djinsight/models.py:127
+msgid "Is Unique"
+msgstr "Czy unikalne"
+
+#: djinsight/models.py:130
+msgid "Page View Event"
+msgstr "Zdarzenie wyświetlenia strony"
+
+#: djinsight/models.py:131
+msgid "Page View Events"
+msgstr "Zdarzenia wyświetlenia strony"
+
+#: djinsight/models.py:147
+msgid "Date"
+msgstr "Data"
+
+#: djinsight/models.py:153
+msgid "Page View Summary"
+msgstr "Podsumowanie wyświetleń strony"
+
+#: djinsight/models.py:154
+msgid "Page View Summaries"
+msgstr "Podsumowania wyświetleń stron"
+
+#: djinsight/models.py:328
+msgid "API Key"
+msgstr "Klucz API"
+
+#: djinsight/models.py:329
+msgid "Name"
+msgstr "Nazwa"
+
+#: djinsight/models.py:330
+msgid "Description"
+msgstr "Opis"
+
+#: djinsight/models.py:331
+msgid "Active"
+msgstr "Aktywny"
+
+#: djinsight/models.py:333
+msgid "Last Used At"
+msgstr "Data ostatniego użycia"
+
+#: djinsight/models.py:336
+msgid "MCP API Key"
+msgstr "Klucz API MCP"
+
+#: djinsight/models.py:337
+msgid "MCP API Keys"
+msgstr "Klucze API MCP"
+
+#: djinsight/wagtail/panels.py:26
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_summary.html:6
+msgid "Total views"
+msgstr "Łączna liczba wyświetleń"
+
+#: djinsight/wagtail/panels.py:42
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_summary.html:10
+msgid "Unique views"
+msgstr "Unikalne wyświetlenia"
+
+#: djinsight/wagtail/reports.py:30
+msgid "All time"
+msgstr "Cały okres"
+
+#: djinsight/wagtail/reports.py:31
+msgid "Today"
+msgstr "Dzisiaj"
+
+#: djinsight/wagtail/reports.py:32
+msgid "This week"
+msgstr "Ten tydzień"
+
+#: djinsight/wagtail/reports.py:33
+msgid "This month"
+msgstr "Ten miesiąc"
+
+#: djinsight/wagtail/reports.py:34
+msgid "This year"
+msgstr "Ten rok"
+
+#: djinsight/wagtail/reports.py:41 djinsight/wagtail/reports.py:42
+msgid "From"
+msgstr "Od"
+
+#: djinsight/wagtail/reports.py:46 djinsight/wagtail/reports.py:47
+msgid "To"
+msgstr "Do"
+
+#: djinsight/wagtail/reports.py:51
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_filters.html:19
+msgid "Content type"
+msgstr "Typ zawartości"
+
+#: djinsight/wagtail/reports.py:56
+msgid "All"
+msgstr "Wszystkie"
+
+#: djinsight/wagtail/reports.py:77 djinsight/wagtail/reports.py:83
+#: djinsight/wagtail/wagtail_hooks.py:36
+msgid "Analytics"
+msgstr "Analityka"
+
+#: djinsight/wagtail/reports.py:340
+msgid "Direct"
+msgstr "Bezpośrednie"
+
+#: djinsight/wagtail/reports.py:341
+msgid "Search"
+msgstr "Wyszukiwarka"
+
+#: djinsight/wagtail/reports.py:342
+msgid "Social"
+msgstr "Media społecznościowe"
+
+#: djinsight/wagtail/reports.py:343
+msgid "Referral"
+msgstr "Odesłanie"
+
+#: djinsight/wagtail/reports.py:347
+msgid "Desktop"
+msgstr "Komputer"
+
+#: djinsight/wagtail/reports.py:348
+msgid "Mobile"
+msgstr "Mobilne"
+
+#: djinsight/wagtail/reports.py:349
+msgid "Tablet"
+msgstr "Tablet"
+
+#: djinsight/wagtail/reports.py:350
+msgid "Bot"
+msgstr "Bot"
+
+#: djinsight/wagtail/reports.py:351
+msgid "Unknown"
+msgstr "Nieznane"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:3
+msgid "Analytics Overview"
+msgstr "Przegląd analityki"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:3
+msgid "last 7 days"
+msgstr "ostatnie 7 dni"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:3
+msgid "views"
+msgstr "wyświetleń"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:11
+msgid "Top Pages"
+msgstr "Najpopularniejsze strony"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:16
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:9
+msgid "Page"
+msgstr "Strona"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:17
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_chart.html:19
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:11
+msgid "Views"
+msgstr "Wyświetlenia"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:38
+msgid "No data yet."
+msgstr "Brak danych."
+
+#: djinsight/wagtail/templates/djinsight/wagtail/panels/analytics_panel.html:100
+msgid ""
+"No analytics data available yet. Views will appear here once tracking is "
+"active."
+msgstr ""
+"Dane analityczne nie są jeszcze dostępne. Wyświetlenia pojawią się tutaj po "
+"włączeniu śledzenia."
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_chart.html:4
+msgid "Daily Views"
+msgstr "Dzienne wyświetlenia"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_chart.html:28
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:12
+msgid "Unique"
+msgstr "Unikalne"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_filters.html:5
+msgid "Period"
+msgstr "Okres"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_filters.html:22
+msgid "Apply"
+msgstr "Zastosuj"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_summary.html:14
+msgid "Tracked objects"
+msgstr "Śledzone obiekty"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:3
+msgid "Page Views"
+msgstr "Wyświetlenia stron"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:10
+msgid "Type"
+msgstr "Typ"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:13
+msgid "Last viewed"
+msgstr "Ostatnio wyświetlane"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:26
+msgid "ago"
+msgstr "temu"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:36
+msgid "Previous"
+msgstr "Poprzednia"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:39
+#, python-format
+msgid ""
+"\n"
+"            Page %(current)s of %(total)s\n"
+"        "
+msgstr ""
+"\n"
+"            Strona %(current)s z %(total)s\n"
+"        "
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:44
+msgid "Next"
+msgstr "Następna"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_table.html:50
+msgid "No page view data found for the selected filters."
+msgstr "Nie znaleziono danych o wyświetleniach stron dla wybranych filtrów."
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_traffic_devices.html:5
+msgid "Traffic Sources"
+msgstr "Źródła ruchu"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_traffic_devices.html:5
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_traffic_devices.html:22
+msgid "total"
+msgstr "łącznie"
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_traffic_devices.html:17
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_traffic_devices.html:34
+msgid "No data."
+msgstr "Brak danych."
+
+#: djinsight/wagtail/templates/djinsight/wagtail/reports/partials/_traffic_devices.html:22
+msgid "Devices"
+msgstr "Urządzenia"
