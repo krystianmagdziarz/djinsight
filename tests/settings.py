@@ -43,3 +43,6 @@ ROOT_URLCONF = "tests.urls"
 TIME_ZONE = "UTC"
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Fast hashing for tests (default PBKDF2 makes user creation take seconds)
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

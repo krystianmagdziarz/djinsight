@@ -6,7 +6,7 @@ Thank you for your interest in contributing to djinsight! This document provides
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - Redis server
 - Git
 
@@ -83,7 +83,7 @@ black djinsight/ && isort djinsight/ && flake8 djinsight/ && mypy djinsight/
 python -m build
 
 # Check the package
-python setup.py check
+twine check dist/*
 
 # Install locally for testing
 pip install -e .
@@ -190,7 +190,6 @@ class PageViewLogTest(TestCase):
 ### Release Steps
 
 1. **Update version numbers** in:
-   - `setup.py`
    - `pyproject.toml`
    - `djinsight/__init__.py`
 

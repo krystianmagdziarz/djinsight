@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,8 @@ name = "djinsight"
 version = "0.4.2"
 description = "MCP-first analytics for Django/Wagtail package for tracking page view statistics with Redis and async processing"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     {name = "MDigital", email = "kontakt@mdigital.com.pl"},
 ]
@@ -29,11 +30,9 @@ classifiers = [
     "Framework :: Wagtail :: 4",
     "Framework :: Wagtail :: 5",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -42,7 +41,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "Django>=3.2",
 ]
@@ -79,7 +78,7 @@ celery = [
     "celery>=5.0.0",
 ]
 mcp = [
-    "mcp>=1.0.0",
+    "mcp>=1.30.0,<2",
 ]
 wagtail = [
     "wagtail>=5.0",
@@ -113,7 +112,7 @@ djinsight = [
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py39']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -154,7 +153,7 @@ exclude = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 check_untyped_defs = true
 ignore_missing_imports = true
 warn_unused_ignores = true
@@ -177,7 +176,6 @@ omit = [
     "*/tests/*",
     "*/venv/*",
     "*/env/*",
-    "setup.py",
 ]
 
 [tool.coverage.report]
