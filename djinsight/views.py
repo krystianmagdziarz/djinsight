@@ -50,6 +50,9 @@ def record_page_view(request):
     if not djinsight_settings.ENABLE_TRACKING:
         return JsonResponse({"status": "disabled"}, status=200)
 
+    if not djinsight_settings.should_track_user(getattr(request, "user", None)):
+        return JsonResponse({"status": "excluded"}, status=200)
+
     try:
         try:
             data = json.loads(request.body)

@@ -75,11 +75,41 @@ That's it. Views are now tracked.
 {% stats metric="views" period="week" output="chart" %}
 ```
 
+### Exclude your own visits
+
+By default every visit is counted. Four flags in `DJINSIGHT` control which visitors are tracked (all default to `True`):
+
+| Flag                 | Effect when `False`                                   |
+| -------------------- | ----------------------------------------------------- |
+| `TRACK_ANONYMOUS`    | Visitors who are not logged in are not counted        |
+| `TRACK_AUTHENTICATED`| No logged-in user is counted (this includes staff and superusers) |
+| `TRACK_STAFF`        | Users with `is_staff` are not counted                 |
+| `TRACK_SUPERUSER`    | Users with `is_superuser` are not counted             |
+
+Don't count my own visits:
+
+```python
+DJINSIGHT = {
+    'TRACK_STAFF': False,
+    'TRACK_SUPERUSER': False,
+}
+```
+
+Only anonymous visitors:
+
+```python
+DJINSIGHT = {
+    'TRACK_AUTHENTICATED': False,
+}
+```
+
+The `{% track %}` tag renders the tracking script regardless of who views the page (safe for page-level caching). The `record_page_view` endpoint checks the user and returns `{"status": "excluded"}` without recording. This needs `AuthenticationMiddleware` in `MIDDLEWARE`; without it every visitor is treated as anonymous.
+
 ---
 
 ## Connect to Claude
 
-1. Install with MCP support:
+1. Install with MCP support (requires Python 3.10+):
 
 ```bash
 pip install djinsight[mcp]

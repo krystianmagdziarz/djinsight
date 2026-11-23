@@ -1,3 +1,21 @@
+## [Unreleased]
+
+### Added
+
+- **Visitor exclusion** — `TRACK_ANONYMOUS`, `TRACK_AUTHENTICATED`, `TRACK_STAFF` and `TRACK_SUPERUSER` settings are now enforced. `record_page_view` returns `{"status": "excluded"}` without recording. The `{% track %}` tag always renders the script (safe for page-level caching); exclusion happens server-side
+
+### Changed
+
+- **Python ≥3.9 required** — dropped Python 3.8 support (EOL October 2024)
+- **MCP extra** pinned to `mcp>=1.30.0,<2` (mcp 2.x removed `mcp.server.fastmcp`)
+- **Packaging** — `setup.py` removed; `pyproject.toml` is the single source of metadata. License uses SPDX expression
+- **Node.js MCP wrapper** (`mcp-package/`) removed — replaced by native FastMCP server since 0.4.0
+
+### Fixed
+
+- Tracking script no longer logs a console error for `excluded` and `disabled` responses
+- `should_track_user` uses `getattr` for `is_staff`/`is_superuser` — safe with custom user models without `PermissionsMixin`
+
 ## [0.4.2] - 2026-04-03
 
 ### Added
@@ -768,7 +786,7 @@ When contributing to this project, please:
 ## Release Process
 
 1. Move items from `[Unreleased]` to a new version section
-2. Update version numbers in `setup.py`, `pyproject.toml`, and `__init__.py`
+2. Update version numbers in `pyproject.toml` and `djinsight/__init__.py`
 3. Create a git tag for the release
 4. Build and upload to PyPI
 5. Update documentation

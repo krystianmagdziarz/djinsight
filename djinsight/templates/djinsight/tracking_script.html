@@ -28,6 +28,10 @@
                 {% if debug %}
                 console.log('[djinsight] Object view recorded successfully:', data);
                 {% endif %}
+            } else if (data.status === 'excluded' || data.status === 'disabled') {
+                {% if debug %}
+                console.log('[djinsight] Tracking skipped:', data.status);
+                {% endif %}
             } else if (data.status === 'ignored') {
                 {% if debug %}
                 console.log('[djinsight] View ignored:', data.message);

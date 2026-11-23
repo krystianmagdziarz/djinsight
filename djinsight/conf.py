@@ -115,13 +115,13 @@ class DjInsightSettings:
         if not user:
             return self.TRACK_ANONYMOUS
 
-        if not user.is_authenticated:
+        if not getattr(user, "is_authenticated", False):
             return self.TRACK_ANONYMOUS
 
-        if user.is_superuser and not self.TRACK_SUPERUSER:
+        if getattr(user, "is_superuser", False) and not self.TRACK_SUPERUSER:
             return False
 
-        if user.is_staff and not self.TRACK_STAFF:
+        if getattr(user, "is_staff", False) and not self.TRACK_STAFF:
             return False
 
         return self.TRACK_AUTHENTICATED
